@@ -13,8 +13,9 @@ PRODUCTS = $(COMPILER) $(PREPROCESSOR)
 default: $(PRODUCTS)
 
 # Set up the list of source and object files
-SRCS = errors.cc utility.cc main.cc \
-	
+SRCS = errors.cc  \
+       utility.cc \
+       main.cc
 
 # OBJS can deal with either .cc or .c files listed in SRCS
 OBJS = lex.yy.o $(patsubst %.cc, %.o, $(filter %.cc,$(SRCS))) $(patsubst %.c, %.o, $(filter %.c, $(SRCS)))
@@ -22,8 +23,8 @@ OBJS = lex.yy.o $(patsubst %.cc, %.o, $(filter %.cc,$(SRCS))) $(patsubst %.c, %.
 JUNK =  *.o lex.yy.c dpp.yy.c y.tab.c y.tab.h *.core core $(COMPILER).purify purify.log 
 
 # Define the tools we are going to use
-CC= g++-4.6
-LD = g++-4.6
+CC= g++-4.6.3
+LD = g++-4.6.3
 LEX = flex
 YACC = bison
 
@@ -32,7 +33,7 @@ YACC = bison
 # We want debugging and most warnings, but lex/yacc generate some
 # static symbols we don't use, so turn off unused warnings to avoid clutter
 # Also STL has some signed/unsigned comparisons we want to suppress
-CFLAGS = -g -Wall -Wno-unused -Wno-sign-compare
+CFLAGS = -g -Wall --pedantic -std=c++0x # -Wno-unused -Wno-sign-compare
 
 # The -d flag tells lex to set up for debugging. Can turn on/off by
 # setting value of global yy_flex_debug inside the scanner itself
@@ -45,7 +46,7 @@ LEXFLAGS = -d
 YACCFLAGS = -dvty
 
 # Link with standard c library, math library, and lex library
-LIBS = -lc -lm -ll
+LIBS = -lc -lm -lfl
 
 # Rules for various parts of the target
 
