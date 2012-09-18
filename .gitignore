@@ -3,5 +3,3 @@
 /build/*
 *.o
 *.yy.*
-dpp
-dcc

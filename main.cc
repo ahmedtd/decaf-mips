@@ -66,8 +66,13 @@ int main(int argc, char *argv[])
   
     InitScanner();
     TokenType token;
-    while ((token = (TokenType)yylex()) != 0) 
+    while ((token = (TokenType)yylex()) != 0)
+    {
         PrintOneToken(token, yytext, yylval, yylloc);
+        
+        if(token == T_StringConstant)
+            delete yylval.stringConstant;
+    }
     pclose(filtered);
     return (ReportError::NumErrors() == 0? 0 : -1);
 }

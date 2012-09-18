@@ -12,10 +12,10 @@ using std::cout;
 using std::flush;
 using std::endl;
 
-#include <cstdio>
+#include <sstream>
+using std::stringstream;
 
-#include <boost/lexical_cast.hpp>
-using boost::lexical_cast;
+#include <cstdio>
 
 #include <string.h>
 #include "scanner.h"
@@ -40,7 +40,9 @@ static void DoBeforeEachAction();
     /* ***************** */
 
     /* Match whitespace and do nothing */
-[[:space:]]+
+[[:space:]]+ 
+
+\n 
 
     /* ********************* */
     /* Match string literals */
@@ -55,7 +57,7 @@ static void DoBeforeEachAction();
     return T_StringConstant;
 }
 
-\"[^\"]\n {
+\"[^\"\n]* {
     ReportError::UntermString(&yylloc, yytext);
 }
 
@@ -78,31 +80,31 @@ false {
     /* *********************** */
 
 [0-9]+"."[0-9]*((e|E)("+"|"-")?[0-9]+)? {
-    yylval.doubleConstant = lexical_cast<double>(yytext);
+    stringstream conv_stream;
+    conv_stream << yytext;
+    conv_stream >> yylval.doubleConstant;
+    
     return T_DoubleConstant;
 }
 
     /* ************************ */
     /* Handle integer constants */
     /* ************************ */
-
-0 {
-    yylval.integerConstant = lexical_cast<int>(yytext);
-    return T_IntConstant;
-}
+ 
+    /* Decaf does not support octal constants */   
+[0-9]* {
+    stringstream conv_stream;
+    conv_stream << yytext;
+    conv_stream >> yylval.integerConstant;
     
-[1-9][0-9]* {
-    yylval.integerConstant = lexical_cast<int>(yytext);
     return T_IntConstant;
 }
 
-0[0-7]+ {
-    yylval.integerConstant = lexical_cast<int>(yytext);
-    return T_IntConstant;
-}
+0(x|X)[0-9a-fA-F]+ {
+    stringstream conv_stream;
+    conv_stream << yytext;
+    conv_stream >> std::hex >> yylval.integerConstant;
 
-0x[0-9a-fA-F]+ {
-    yylval.integerConstant = lexical_cast<int>(yytext);
     return T_IntConstant;
 }
 
@@ -209,6 +211,8 @@ string {
 
 "null" return T_Null;
 
+"while" return T_While;
+
  /* "ReadInteger" return T_ReadInteger; */
 
  /* "ReadLine" return T_ReadLine; */
@@ -229,8 +233,18 @@ string {
 
 [[:alpha:]][[:alnum:]_]{31,} {
     ReportError::LongIdentifier(&yylloc, yytext);
+    strncpy(yylval.identifier, yytext, 32);
+    yylval.identifier[31] = '\0';
+    return T_Identifier;
 }
 
+    /* ************************ */
+    /* Match garbage characters */
+    /* ************************ */
+
+. {
+    ReportError::UnrecogChar(&yylloc, *yytext);
+}
 %%
     /* *************** */
     /* Begin user code */

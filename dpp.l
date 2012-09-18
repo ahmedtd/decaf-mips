@@ -71,7 +71,7 @@ using std::string;
 }
 
     /* Match all other directives, which are invalid */
-#[[:alpha:]]+ ReportError::InvalidDirective(line_num);
+#[[:alpha:]]* ReportError::InvalidDirective(line_num);
 
     /* Strip comments */
 "//"[^\n]*
