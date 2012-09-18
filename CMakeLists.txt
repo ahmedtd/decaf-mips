@@ -9,10 +9,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall --pedantic -std=c++0x")
 
 find_package(FLEX REQUIRED)
 
-find_package(Boost REQUIRED)
+# find_package(Boost REQUIRED)
 
 include_directories(${FLEX_INCLUDE_DIRS}
-                    ${Boost_INCLUDE_DIRS}
+                    # ${Boost_INCLUDE_DIRS}
                     ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Build preprocessor
@@ -24,7 +24,8 @@ add_executable(dpp
                ${FLEX_dpp_flex_OUTPUTS})
 add_dependencies(dpp dpp_flex)
 target_link_libraries(dpp ${FLEX_LIBRARIES}
-                          ${Boost_LIBRARIES})
+                          # ${Boost_LIBRARIES}
+                          )
 
 # Build compiler
 flex_target(dcc_flex scanner.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cpp)
@@ -35,7 +36,8 @@ add_executable(dcc
                ${FLEX_dcc_flex_OUTPUTS})
 add_dependencies(dcc dcc_flex dpp)
 target_link_libraries(dcc ${FLEX_LIBRARIES}
-                          ${Boost_LIBRARIES})
+                          # ${Boost_LIBRARIES}
+                          )
 
 # Copy solution binaries to output directory
 add_subdirectory(solution)

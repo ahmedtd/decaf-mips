@@ -1,0 +1,22 @@
+Project 1
+Taahir Ahmed
+
+I've switched the build system from straight make to cmake, which supports out
+of source builds.
+
+To configure the project, starting in the top-level directory:
+
+>mkdir build
+>cd build
+>CXX=/usr/bin/g++-4.6 cmake ..
+
+This will find flex and configure the project
+
+Then type
+>make
+to build the project.  My binaries will be in <root>/build, the solution
+binaries in <root>/build/solution
+
+>make test
+
+will run a diff test against the provided fragments.
