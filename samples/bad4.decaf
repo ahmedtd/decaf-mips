@@ -1,6 +1,17 @@
-void main() {
-  x = 123.4.554;
-  y = x;
-  if x Print("wacky");
-  return true;
+class Shape {
+  int a;
 }
+
+class Block {
+   int b;
+}
+
+class Block {
+   int c;
+}
+
+void main() {
+  ABlock[] test;
+}
+
+int Shape;

@@ -5,18 +5,12 @@
 
 %{
 
-#include <string>
-
 #include <string.h>
 #include "scanner.h"
 #include "utility.h" // for PrintDebug()
 #include "errors.h"
 #include "parser.h" // for token codes, yylval
 #include "list.h"
-
-#include "ast_expr.h"
-#include "ast_stmt.h"
-#include "ast_decl.h"
 
 #define TAB_SIZE 8
 
@@ -30,8 +24,6 @@ List<const char*> savedLines;
 
 static void DoBeforeEachAction(); 
 #define YY_USER_ACTION DoBeforeEachAction();
-
-std::string matched_string();
 
 %}
 
@@ -59,7 +51,7 @@ DOUBLE            ({INTEGER}"."{DIGIT}*{EXPONENT}?)
 BEG_STRING        (\"[^"\n]*)
 STRING            ({BEG_STRING}\")
 IDENTIFIER        ([a-zA-Z][a-zA-Z_0-9]*)
-OPERATOR          ([-+/*%=.,:;!<>()[\]{}])
+OPERATOR          ([-+/*%=.,;!<>()[\]{}])
 BEG_COMMENT       ("/*")
 END_COMMENT       ("*/")
 SINGLE_COMMENT    ("//"[^\n]*)
@@ -110,48 +102,17 @@ SINGLE_COMMENT    ("//"[^\n]*)
 "Print"             { return T_Print;       }
 "ReadInteger"       { return T_ReadInteger; }
 "ReadLine"          { return T_ReadLine;    }
-"switch"            { return T_Switch;      }
-"case"              { return T_Case;        }
-"default"           { return T_Default;     }
+
 
 
  /* -------------------- Operators ----------------------------- */
-"<="                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_LessEqual;
-                    }
-">="                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_GreaterEqual;
-                    }
-"=="                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_Equal;
-                    }
-"!="                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_NotEqual;
-                    }
-"&&"                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_And;
-                    }
-"||"                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_Or;
-                    }
-"++"                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_Incr;
-                    }
-"--"                {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return T_Decr;
-                    }
-{OPERATOR}          {
-                        yylval.op = new Operator(yylloc, matched_string());
-                        return yytext[0];
-                    }
+"<="                { return T_LessEqual;   }
+">="                { return T_GreaterEqual;}
+"=="                { return T_Equal;       }
+"!="                { return T_NotEqual;    }
+"&&"                { return T_And;         }
+"||"                { return T_Or;          }
+{OPERATOR}          { return yytext[0];     }
     
 "[]"                { return T_Dims;        }
 
@@ -170,17 +131,11 @@ SINGLE_COMMENT    ("//"[^\n]*)
 
 
  /* -------------------- Identifiers --------------------------- */
-{IDENTIFIER}        {
-                       if (strlen(yytext) > MaxIdentLen)
+{IDENTIFIER}        { if (strlen(yytext) > MaxIdentLen)
                          ReportError::LongIdentifier(&yylloc, yytext);
-                       //strncpy(yylval.identifier, yytext, MaxIdentLen);
-                       //yylval.identifier[MaxIdentLen] = '\0';
-
-                       std::string name(yytext, yyleng);
-                       yylval.ident = new Identifier(yylloc, name);
-
-                       return T_Identifier;
-                    }
+                       strncpy(yylval.identifier, yytext, MaxIdentLen);
+                       yylval.identifier[MaxIdentLen] = '\0';
+                       return T_Identifier; }
 
 
  /* -------------------- Default rule (error) -------------------- */
@@ -225,11 +180,6 @@ static void DoBeforeEachAction()
    yylloc.first_column = curColNum;
    yylloc.last_column = curColNum + yyleng - 1;
    curColNum += yyleng;
-}
-
-std::string matched_string()
-{
-    return (std::string(yytext, yyleng));
 }
 
 /* Function: GetLineNumbered()

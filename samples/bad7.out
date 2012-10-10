@@ -1,6 +1,12 @@
 
-*** Error line 12.
-  betsy = New(Cow, true);
-                 ^
-*** syntax error
+*** Error line 7.
+        int b;
+            ^
+*** Declaration of 'b' here conflicts with declaration on line 6
+
+
+*** Error line 13.
+           Unknown b;
+           ^^^^^^^
+*** No declaration found for type 'Unknown'
 

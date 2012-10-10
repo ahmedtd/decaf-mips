@@ -1,7 +1,8 @@
-void main() {
-  int a;
+void Mystery(Unknown a) {}
 
-  a = 5;
-  Print(a)
-  a = ReadInteger();
+class Trouble extends Missing implements Gone
+{
+
 }
+
+void main() {}

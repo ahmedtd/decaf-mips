@@ -1,16 +1,11 @@
+int Oops(int x, int x) {
+  x = 10;
+}
 class Binky {
-   bool notgood, variables;
-
-   void Dinky() {
-     3 = bad;
-     good  = 4;
-  }
+    void Winky(int a, double b, int[] a) {
+    }
 }
-
-int[143] bad;
-double good;
-
-void main()
-{
-    if (4) Print("Hello");
-}
+void main() {
+  int a;
+  int x;
+} 
