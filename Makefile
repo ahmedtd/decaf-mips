@@ -8,23 +8,20 @@
 # Set the default target. When you make with no arguments,
 # this will be the target built.
 COMPILER = dcc
-PREPROCESSOR = dpp
-PRODUCTS = $(COMPILER) $(PREPROCESSOR)
+PRODUCTS = $(COMPILER) 
 default: $(PRODUCTS)
 
 # Set up the list of source and object files
-SRCS = errors.cc  \
-       utility.cc \
-       main.cc
+SRCS = ast.cc ast_decl.cc ast_expr.cc ast_stmt.cc ast_type.cc errors.cc utility.cc main.cc
 
 # OBJS can deal with either .cc or .c files listed in SRCS
-OBJS = lex.yy.o $(patsubst %.cc, %.o, $(filter %.cc,$(SRCS))) $(patsubst %.c, %.o, $(filter %.c, $(SRCS)))
+OBJS = y.tab.o lex.yy.o $(patsubst %.cc, %.o, $(filter %.cc,$(SRCS))) $(patsubst %.c, %.o, $(filter %.c, $(SRCS)))
 
 JUNK =  *.o lex.yy.c dpp.yy.c y.tab.c y.tab.h *.core core $(COMPILER).purify purify.log 
 
 # Define the tools we are going to use
-CC= g++-4.6.3
-LD = g++-4.6.3
+CC= g++-4.6
+LD = g++-4.6
 LEX = flex
 YACC = bison
 
@@ -33,7 +30,7 @@ YACC = bison
 # We want debugging and most warnings, but lex/yacc generate some
 # static symbols we don't use, so turn off unused warnings to avoid clutter
 # Also STL has some signed/unsigned comparisons we want to suppress
-CFLAGS = -g -Wall --pedantic -std=c++0x # -Wno-unused -Wno-sign-compare
+CFLAGS = -g -Wall -Wno-unused -Wno-sign-compare -std=c++11
 
 # The -d flag tells lex to set up for debugging. Can turn on/off by
 # setting value of global yy_flex_debug inside the scanner itself
@@ -43,7 +40,7 @@ LEXFLAGS = -d
 # The -v flag writes out a verbose description of the states and conflicts
 # The -t flag turns on debugging capability
 # The -y flag means imitate yacc's output file naming conventions
-YACCFLAGS = -dvty
+YACCFLAGS = -dvtyW
 
 # Link with standard c library, math library, and lex library
 LIBS = -lc -lm -lfl
@@ -53,28 +50,25 @@ LIBS = -lc -lm -lfl
 .yy.o: $*.yy.c
 	$(CC) $(CFLAGS) -c -o $@ $*.cc
 
-lex.yy.c: scanner.l 
+lex.yy.c: scanner.l  parser.y y.tab.h 
 	$(LEX) $(LEXFLAGS) scanner.l
 
+y.tab.o: y.tab.c
+	$(CC) $(CFLAGS) -c -o y.tab.o y.tab.c
+
+y.tab.h y.tab.c: parser.y
+	$(YACC) $(YACCFLAGS) parser.y
 .cc.o: $*.cc
 	$(CC) $(CFLAGS) -c -o $@ $*.cc
 
 # rules to build compiler (dcc)
 
-$(COMPILER) : $(PREPROCESSOR) $(OBJS)
+$(COMPILER) :  $(OBJS)
 	$(LD) -o $@ $(OBJS) $(LIBS)
 
 $(COMPILER).purify : $(OBJS)
 	purify -log-file=purify.log -cache-dir=/tmp/$(USER) -leaks-at-exit=no $(LD) -o $@ $(OBJS) $(LIBS)
 
-# rules to build preprocessor (dpp) j
-PREP_OBJS = dpp.yy.o dppmain.o utility.o errors.o
-
-$(PREPROCESSOR) : $(PREP_OBJS)
-	$(LD) -o $@ $(PREP_OBJS) $(LIBS)
-
-dpp.yy.c : dpp.l
-	$(LEX) -odpp.yy.c dpp.l
 
 # This target is to build small for testing (no debugging info), removes
 # all intermediate products, too

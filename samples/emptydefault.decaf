@@ -1,0 +1,13 @@
+int main()
+{
+	switch(abc)
+	{
+	case 1:
+		boo();
+		break;
+	default:
+	}
+	
+	return;
+}
+	

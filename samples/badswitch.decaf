@@ -1,0 +1,11 @@
+int main()
+{
+	switch(abc)
+	{
+	   default:
+	   		a=a;
+	   		break;
+	   case 1:
+	   		b=a;
+	   		break;
+}

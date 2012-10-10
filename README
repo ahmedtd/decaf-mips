@@ -1,22 +1,19 @@
-Project 1
+
+Sorry it's late.
+
+Only a little bit of build system trickery this time, and nothing that
+modifies the default targets.
+
+Running "./diff-all ./ solution samples/" in the root directory will
+test my parser against the solution parser for all .decaf files in the
+samples directory, printing out diffs if they differ.
+
+As an aside, I believe that the solution is overly restrictive for the
+switch case labels -- the assignment document states that they must be
+compile-time integer constanst, but the solution only accepts integer
+literals.  Literals are probably the intended (and safer) behavior,
+but going by the spec, expressions such as "a" and "1+1" should be
+permissible as case labels, as they can be compile-time integer
+constants.
+
 Taahir Ahmed
-
-I've switched the build system from straight make to cmake, which supports out
-of source builds.
-
-To configure the project, starting in the top-level directory:
-
->mkdir build
->cd build
->CXX=/usr/bin/g++-4.6 cmake ..
-
-This will find flex and configure the project
-
-Then type
->make
-to build the project.  My binaries will be in <root>/build, the solution
-binaries in <root>/build/solution
-
->make test
-
-will run a diff test against the provided fragments.
