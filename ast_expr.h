@@ -15,7 +15,6 @@
 
 #include "ast.h"
 #include "ast_stmt.h"
-#include "list.h"
 
 class NamedType; // for new
 class Type; // for NewArray
@@ -179,10 +178,10 @@ class Call : public Expr
   protected:
     Expr *base;	// will be NULL if no explicit base
     Identifier *field;
-    List<Expr*> *actuals;
+    vector<Expr*> *actuals;
     
   public:
-    Call(yyltype loc, Expr *base, Identifier *field, List<Expr*> *args);
+    Call(yyltype loc, Expr *base, Identifier *field, vector<Expr*> *args);
 };
 
 class NewExpr : public Expr

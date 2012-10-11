@@ -13,7 +13,9 @@
 #ifndef _H_ast_stmt
 #define _H_ast_stmt
 
-#include "list.h"
+#include <vector>
+using std::vector;
+
 #include "ast.h"
 
 class Decl;
@@ -23,10 +25,10 @@ class Expr;
 class Program : public Node
 {
   protected:
-     List<Decl*> *decls;
+     vector<Decl*> *decls;
      
   public:
-     Program(List<Decl*> *declList);
+     Program(vector<Decl*> *declList);
      void Check();
 };
 
@@ -40,11 +42,11 @@ class Stmt : public Node
 class StmtBlock : public Stmt 
 {
   protected:
-    List<VarDecl*> *decls;
-    List<Stmt*> *stmts;
+    vector<VarDecl*> *decls;
+    vector<Stmt*> *stmts;
     
   public:
-    StmtBlock(List<VarDecl*> *variableDeclarations, List<Stmt*> *statements);
+    StmtBlock(vector<VarDecl*> *variableDeclarations, vector<Stmt*> *statements);
 };
 
   
@@ -107,10 +109,10 @@ class ReturnStmt : public Stmt
 class PrintStmt : public Stmt
 {
   protected:
-    List<Expr*> *args;
+    vector<Expr*> *args;
     
   public:
-    PrintStmt(List<Expr*> *arguments);
+    PrintStmt(vector<Expr*> *arguments);
 };
 
 

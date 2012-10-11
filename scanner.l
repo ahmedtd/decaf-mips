@@ -5,12 +5,18 @@
 
 %{
 
+#include <vector>
+using std::vector;
+#include <string>
+using std::string;
+
 #include <string.h>
 #include "scanner.h"
 #include "utility.h" // for PrintDebug()
 #include "errors.h"
 #include "parser.h" // for token codes, yylval
-#include "list.h"
+
+vector<string> savedLines;
 
 #define TAB_SIZE 8
 
@@ -20,7 +26,7 @@
  * preserved between calls to yylex or used outside the scanner.
  */
 static int curLineNum, curColNum;
-List<const char*> savedLines;
+
 
 static void DoBeforeEachAction(); 
 #define YY_USER_ACTION DoBeforeEachAction();
@@ -58,14 +64,23 @@ SINGLE_COMMENT    ("//"[^\n]*)
 
 %%             /* BEGIN RULES SECTION */
 
-<COPY>.*               { char curLine[512];
-                         //strncpy(curLine, yytext, sizeof(curLine));
-                         savedLines.Append(strdup(yytext));
-                         curColNum = 1; yy_pop_state(); yyless(0); }
+<COPY>.*               { 
+                           savedLines.push_back(string(yytext));
+                           curColNum = 1;
+                           yy_pop_state();
+                           yyless(0);
+                       }
+
 <COPY><<EOF>>          { yy_pop_state(); }
-<*>\n                  { curLineNum++; curColNum = 1;
-                         if (YYSTATE == COPY) savedLines.Append("");
-                         else yy_push_state(COPY); }
+<*>\n                  { 
+                           curLineNum++; curColNum = 1;
+                           if(YYSTATE == COPY)
+                           {
+                               savedLines.push_back("");
+                           }
+                           else
+                               yy_push_state(COPY);
+                       }
 
 [ ]+                   { /* ignore all spaces */  }
 <*>[\t]                { curColNum += TAB_SIZE - curColNum%TAB_SIZE + 1; }
@@ -189,9 +204,9 @@ static void DoBeforeEachAction()
  * each line scanned and appends each to a list so we can later
  * retrieve them to report the context for errors.
  */
-const char *GetLineNumbered(int num) {
-   if (num <= 0 || num > savedLines.NumElements()) return NULL;
-   return savedLines.Nth(num-1); 
+const string& GetLineNumbered(int num)
+{
+    return savedLines.at(num);
 }
 
 

@@ -13,8 +13,10 @@
 #ifndef _H_ast_decl
 #define _H_ast_decl
 
+#include <vector>
+using std::vector;
+
 #include "ast.h"
-#include "list.h"
 
 class Type;
 class NamedType;
@@ -43,33 +45,33 @@ class VarDecl : public Decl
 class ClassDecl : public Decl 
 {
   protected:
-    List<Decl*> *members;
+    vector<Decl*> *members;
     NamedType *extends;
-    List<NamedType*> *implements;
+    vector<NamedType*> *implements;
 
   public:
     ClassDecl(Identifier *name, NamedType *extends, 
-              List<NamedType*> *implements, List<Decl*> *members);
+              vector<NamedType*> *implements, vector<Decl*> *members);
 };
 
 class InterfaceDecl : public Decl 
 {
   protected:
-    List<Decl*> *members;
+    vector<Decl*> *members;
     
   public:
-    InterfaceDecl(Identifier *name, List<Decl*> *members);
+    InterfaceDecl(Identifier *name, vector<Decl*> *members);
 };
 
 class FnDecl : public Decl 
 {
   protected:
-    List<VarDecl*> *formals;
+    vector<VarDecl*> *formals;
     Type *returnType;
     Stmt *body;
     
   public:
-    FnDecl(Identifier *name, Type *returnType, List<VarDecl*> *formals);
+    FnDecl(Identifier *name, Type *returnType, vector<VarDecl*> *formals);
     void SetFunctionBody(Stmt *b);
 };
 

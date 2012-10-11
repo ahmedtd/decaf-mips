@@ -47,7 +47,6 @@ class Node
     void SetParent(Node *p)  { parent = p; }
     Node *GetParent()        { return parent; }
 };
-   
 
 class Identifier : public Node 
 {

@@ -2,6 +2,9 @@
  * -----------------
  * Implementation of expression node classes.
  */
+
+#include <cassert>
+
 #include "ast_expr.h"
 #include "ast_type.h"
 #include "ast_decl.h"
@@ -21,18 +24,20 @@ BoolConstant::BoolConstant(yyltype loc, bool val) : Expr(loc) {
     value = val;
 }
 
-StringConstant::StringConstant(yyltype loc, const char *val) : Expr(loc) {
-    Assert(val != NULL);
+StringConstant::StringConstant(yyltype loc, const char *val)
+    : Expr(loc)
+{
+    assert(val != NULL);
     value = strdup(val);
 }
 
 Operator::Operator(yyltype loc, const char *tok) : Node(loc) {
-    Assert(tok != NULL);
+    assert(tok != NULL);
     strncpy(tokenString, tok, sizeof(tokenString));
 }
 CompoundExpr::CompoundExpr(Expr *l, Operator *o, Expr *r) 
   : Expr(Join(l->GetLocation(), r->GetLocation())) {
-    Assert(l != NULL && o != NULL && r != NULL);
+    assert(l != NULL && o != NULL && r != NULL);
     (op=o)->SetParent(this);
     (left=l)->SetParent(this); 
     (right=r)->SetParent(this);
@@ -40,7 +45,7 @@ CompoundExpr::CompoundExpr(Expr *l, Operator *o, Expr *r)
 
 CompoundExpr::CompoundExpr(Operator *o, Expr *r) 
   : Expr(Join(o->GetLocation(), r->GetLocation())) {
-    Assert(o != NULL && r != NULL);
+    assert(o != NULL && r != NULL);
     left = NULL; 
     (op=o)->SetParent(this);
     (right=r)->SetParent(this);
@@ -54,30 +59,39 @@ ArrayAccess::ArrayAccess(yyltype loc, Expr *b, Expr *s) : LValue(loc) {
      
 FieldAccess::FieldAccess(Expr *b, Identifier *f) 
   : LValue(b? Join(b->GetLocation(), f->GetLocation()) : *f->GetLocation()) {
-    Assert(f != NULL); // b can be be NULL (just means no explicit base)
+    assert(f != NULL); // b can be be NULL (just means no explicit base)
     base = b; 
     if (base) base->SetParent(this); 
     (field=f)->SetParent(this);
 }
 
 
-Call::Call(yyltype loc, Expr *b, Identifier *f, List<Expr*> *a) : Expr(loc)  {
-    Assert(f != NULL && a != NULL); // b can be be NULL (just means no explicit base)
-    base = b;
+Call::Call(yyltype loc, Expr *b, Identifier *f, vector<Expr*> *a)
+    : Expr(loc),
+      base(b),
+      field(f),
+      actuals(a)
+{
+    assert(f != NULL && a != NULL); // b can be be NULL (just means no explicit base)
+
     if (base) base->SetParent(this);
-    (field=f)->SetParent(this);
-    (actuals=a)->SetParentAll(this);
+    field->SetParent(this);
+
+    for(auto actp : *actuals)
+    {
+        actp->SetParent(this);
+    }
 }
  
 
 NewExpr::NewExpr(yyltype loc, NamedType *c) : Expr(loc) { 
-  Assert(c != NULL);
+  assert(c != NULL);
   (cType=c)->SetParent(this);
 }
 
 
 NewArrayExpr::NewArrayExpr(yyltype loc, Expr *sz, Type *et) : Expr(loc) {
-    Assert(sz != NULL && et != NULL);
+    assert(sz != NULL && et != NULL);
     (size=sz)->SetParent(this); 
     (elemType=et)->SetParent(this);
 }

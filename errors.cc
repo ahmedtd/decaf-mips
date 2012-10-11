@@ -4,11 +4,18 @@
  */
 
 #include "errors.h"
-#include <iostream>
-#include <sstream>
 #include <stdarg.h>
 #include <stdio.h>
-using namespace std;
+
+#include <cassert>
+#include <iostream>
+using std::cout;
+using std::cerr;
+using std::endl;
+#include <sstream>
+using std::stringstream;
+#include <string>
+using std::string;
 
 #include "scanner.h" // for GetLineNumbered
 #include "ast_type.h"
@@ -18,8 +25,7 @@ using namespace std;
 
 int ReportError::numErrors = 0;
 
-void ReportError::UnderlineErrorInLine(const char *line, yyltype *pos) {
-    if (!line) return;
+void ReportError::UnderlineErrorInLine(const string &line, yyltype *pos) {
     cerr << line << endl;
     for (int i = 1; i <= pos->last_column; i++)
         cerr << (i >= pos->first_column ? '^' : ' ');
@@ -99,7 +105,7 @@ void ReportError::InterfaceNotImplemented(Decl *cd, Type *interfaceType) {
 void ReportError::IdentifierNotDeclared(Identifier *ident, reasonT whyNeeded) {
     stringstream s;
     static const char *names[] =  {"type", "class", "interface", "variable", "function"};
-    Assert(whyNeeded >= 0 && whyNeeded <= sizeof(names)/sizeof(names[0]));
+    assert(whyNeeded >= 0 && whyNeeded <= sizeof(names)/sizeof(names[0]));
     s << "No declaration found for "<< names[whyNeeded] << " '" << ident << "'";
     OutputError(ident->GetLocation(), s.str());
 }

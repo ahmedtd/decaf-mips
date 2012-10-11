@@ -2,6 +2,9 @@
  * -----------------
  * Implementation of type node classes.
  */
+
+#include <cassert>
+
 #include "ast_type.h"
 #include "ast_decl.h"
 #include <string.h>
@@ -24,7 +27,7 @@ Type *Type::stringType = new Type("string");
 Type *Type::errorType  = new Type("error"); 
 
 Type::Type(const char *n) {
-    Assert(n);
+    assert(n);
     typeName = strdup(n);
 }
 
@@ -32,13 +35,13 @@ Type::Type(const char *n) {
 
 	
 NamedType::NamedType(Identifier *i) : Type(*i->GetLocation()) {
-    Assert(i != NULL);
+    assert(i != NULL);
     (id=i)->SetParent(this);
 } 
 
 
 ArrayType::ArrayType(yyltype loc, Type *et) : Type(loc) {
-    Assert(et != NULL);
+    assert(et != NULL);
     (elemType=et)->SetParent(this);
 }
 

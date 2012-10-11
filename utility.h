@@ -7,6 +7,9 @@
 #ifndef _H_utility
 #define _H_utility
 
+#include <string>
+using std::string;
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -35,8 +38,8 @@ void Failure(const char *format, ...);
  *   *** Failure: Assertion failed: hashtable.cc, line 55:
  *       ptr != NULL
  */ 
-#define Assert(expr)  \
-  ((expr) ? (void)0 : Failure("Assertion failed: %s, line %d:\n    %s", __FILE__, __LINE__, #expr))
+/* #define Assert(expr)  \ */
+/*   ((expr) ? (void)0 : Failure("Assertion failed: %s, line %d:\n    %s", __FILE__, __LINE__, #expr)) */
 
 
 
@@ -49,7 +52,7 @@ void Failure(const char *format, ...);
  * The function accepts printf arguments.  The provided main.cc parses
  * the command line to turn on debug flags. 
  */
-void PrintDebug(const char *key, const char *format, ...);
+void PrintDebug(const string &key, const char *format, ...);
 
 
 /* Function: SetDebugForKey()
@@ -59,7 +62,7 @@ void PrintDebug(const char *key, const char *format, ...);
  * for an example. Can be called manually when desired and will
  * be called from the provided main for flags passed with -d.
  */
-void SetDebugForKey(const char *key, bool val);
+void SetDebugForKey(const string &key, bool val);
 
 
 /* Function: IsDebugOn()
@@ -68,7 +71,7 @@ void SetDebugForKey(const char *key, bool val);
  * Return true/false based on whether this key is currently on
  * for debug printing.
  */
-bool IsDebugOn(const char *key);
+bool IsDebugOn(const string &key);
 
 
 

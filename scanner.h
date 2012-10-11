@@ -8,6 +8,9 @@
 #ifndef _H_scanner
 #define _H_scanner
 
+#include <string>
+using std::string;
+
 #include <stdio.h>
 
 #define MaxIdentLen 31    // Maximum length for identifiers
@@ -20,6 +23,6 @@ void yyrestart(FILE *fp); // ditto
 
 
 void InitScanner();                 // Defined in scanner.l user subroutines
-const char *GetLineNumbered(int n); // ditto
+const string& GetLineNumbered(int n); // ditto
  
 #endif

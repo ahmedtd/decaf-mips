@@ -13,7 +13,6 @@
 #define _H_ast_type
 
 #include "ast.h"
-#include "list.h"
 #include <iostream>
 
 

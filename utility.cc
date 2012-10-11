@@ -4,12 +4,22 @@
  * debugging information triggered by keys.
  */
 
+#include <algorithm>
+using std::find;
+#include <string>
+using std::string;
+#include <map>
+using std::map;
+using std::begin;
+using std::end;
+#include <utility>
+using std::get;
+
 #include "utility.h"
 #include <stdarg.h>
-#include "list.h"
 #include <string.h>
 
-static List<const char*> debugKeys;
+static map<string, bool> debug_keys;
 static const int BufferSize = 2048;
 
 void Failure(const char *format, ...)
@@ -26,43 +36,42 @@ void Failure(const char *format, ...)
 }
 
 
+// int IndexOf(const string &key)
+// {
+//     auto pos = find(begin(debugKeys), end(debugKeys));
+//     return (pos == end(debugKeys)) ? -1 : (pos - begin(debugKeys));
+// }
 
-int IndexOf(const char *key)
+
+bool IsDebugOn(const string &key)
 {
-   for (int i = 0; i < debugKeys.NumElements(); i++)
-      if (!strcmp(debugKeys.Nth(i), key)) return i;
-   return -1;
+    auto pos = debug_keys.find(key);
+    return (pos == end(debug_keys)) ? false : get<1>(*pos);
 }
 
-bool IsDebugOn(const char *key)
-{
-   return (IndexOf(key) != -1);
-}
 
-
-void SetDebugForKey(const char *key, bool value)
+void SetDebugForKey(const string &key, bool value)
 {
-  int k = IndexOf(key);
-  if (!value && k != -1)
-    debugKeys.RemoveAt(k);
-  else if (value && k == -1)
-    debugKeys.Append(key);
+    debug_keys[key] = value;
 }
 
 
 
-void PrintDebug(const char *key, const char *format, ...)
+void PrintDebug(const string &key, const char *format, ...)
 {
-  va_list args;
-  char buf[BufferSize];
+    va_list args;
+    char buf[BufferSize];
 
-  if (!IsDebugOn(key))
-     return;
+    if (!IsDebugOn(key))
+        return;
   
-  va_start(args, format);
-  vsprintf(buf, format, args);
-  va_end(args);
-  printf("+++ (%s): %s%s", key, buf, buf[strlen(buf)-1] != '\n'? "\n" : "");
+    va_start(args, format);
+    vsprintf(buf, format, args);
+    va_end(args);
+    printf("+++ (%s): %s%s",
+           key.c_str(),
+           buf,
+           (buf[strlen(buf)-1] != '\n') ? "\n" : "");
 }
 
 

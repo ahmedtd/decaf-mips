@@ -109,7 +109,7 @@ class ReportError
   
  private:
 
-  static void UnderlineErrorInLine(const char *line, yyltype *pos);
+  static void UnderlineErrorInLine(const string &line, yyltype *pos);
   static void OutputError(yyltype *loc, string msg);
   static int numErrors;
   
