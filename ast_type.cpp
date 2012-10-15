@@ -4,11 +4,10 @@
  */
 
 #include <cassert>
+#include <cstring>
 
-#include "ast_type.h"
-#include "ast_decl.h"
-#include <string.h>
-
+#include "ast_type.hpp"
+#include "ast_decl.hpp"
  
 /* Class constants
  * ---------------
@@ -30,19 +29,22 @@ Type::Type(const char *n) {
     assert(n);
     typeName = strdup(n);
 }
-
-
-
 	
-NamedType::NamedType(Identifier *i) : Type(*i->GetLocation()) {
+NamedType::NamedType(Identifier *i)
+    : Type(i->location),
+      id(i)
+{
     assert(i != NULL);
-    (id=i)->SetParent(this);
+    //(id=i)->parent(this);
 } 
 
 
-ArrayType::ArrayType(yyltype loc, Type *et) : Type(loc) {
+ArrayType::ArrayType(yyltype loc, Type *et)
+    : Type(loc),
+      elemType(et)
+{
     assert(et != NULL);
-    (elemType=et)->SetParent(this);
+    //(elemType=et)->parent(this);
 }
 
 

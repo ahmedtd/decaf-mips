@@ -5,9 +5,9 @@
 
 %{
 
-#include "scanner.h" // for yylex
-#include "parser.h"
-#include "errors.h"
+#include "scanner.hpp" // for yylex
+#include "parser.hpp"
+#include "errors.hpp"
 
 #include <vector>
 using std::vector;
@@ -104,7 +104,7 @@ Program   :    DeclList            {
                                       Program *program = new Program($1);
                                       // if no errors, advance to next phase
                                       if (ReportError::NumErrors() == 0) 
-                                          program->Check(); 
+                                          program->scope_check(); 
                                     }
           ;
 

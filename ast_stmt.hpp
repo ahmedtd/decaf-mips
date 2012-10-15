@@ -16,102 +16,107 @@
 #include <vector>
 using std::vector;
 
-#include "ast.h"
+#include "ast.hpp"
 
 class Decl;
 class VarDecl;
 class Expr;
-  
+
+// Program has a scope that represents 
 class Program : public Node
 {
-  protected:
-     vector<Decl*> *decls;
-     
-  public:
-     Program(vector<Decl*> *declList);
-     void Check();
+protected:
+    vector<Decl*> *decls;
+    
+public:
+    Program(vector<Decl*> *declList);
+
+    virtual bool scope_check(
+        const map<const string, const Decl*> &current_scope
+        = (map<const string, const Decl*>())
+        );
 };
 
 class Stmt : public Node
 {
-  public:
-     Stmt() : Node() {}
-     Stmt(yyltype loc) : Node(loc) {}
+public:
+    Stmt() : Node() {}
+    Stmt(yyltype loc) : Node(loc) {}
 };
 
 class StmtBlock : public Stmt 
 {
-  protected:
+protected:
     vector<VarDecl*> *decls;
     vector<Stmt*> *stmts;
     
-  public:
+public:
     StmtBlock(vector<VarDecl*> *variableDeclarations, vector<Stmt*> *statements);
 };
 
   
 class ConditionalStmt : public Stmt
 {
-  protected:
+protected:
     Expr *test;
     Stmt *body;
   
-  public:
+public:
     ConditionalStmt(Expr *testExpr, Stmt *body);
 };
 
 class LoopStmt : public ConditionalStmt 
 {
-  public:
+public:
     LoopStmt(Expr *testExpr, Stmt *body)
-            : ConditionalStmt(testExpr, body) {}
+        : ConditionalStmt(testExpr, body) {}
 };
 
 class ForStmt : public LoopStmt 
 {
-  protected:
+protected:
     Expr *init, *step;
   
-  public:
+public:
     ForStmt(Expr *init, Expr *test, Expr *step, Stmt *body);
 };
 
 class WhileStmt : public LoopStmt 
 {
-  public:
+public:
     WhileStmt(Expr *test, Stmt *body) : LoopStmt(test, body) {}
 };
 
 class IfStmt : public ConditionalStmt 
 {
-  protected:
+protected:
     Stmt *elseBody;
   
-  public:
+public:
     IfStmt(Expr *test, Stmt *thenBody, Stmt *elseBody);
 };
 
 class BreakStmt : public Stmt 
 {
-  public:
+public:
     BreakStmt(yyltype loc) : Stmt(loc) {}
 };
 
 class ReturnStmt : public Stmt  
 {
-  protected:
+protected:
     Expr *expr;
   
-  public:
+public:
     ReturnStmt(yyltype loc, Expr *expr);
 };
 
 class PrintStmt : public Stmt
 {
-  protected:
+protected:
     vector<Expr*> *args;
     
-  public:
+public:
     PrintStmt(vector<Expr*> *arguments);
 };
 

@@ -13,10 +13,12 @@
 #ifndef _H_ast_decl
 #define _H_ast_decl
 
+#include <ostream>
+using std::ostream;
 #include <vector>
 using std::vector;
 
-#include "ast.h"
+#include "ast.hpp"
 
 class Type;
 class NamedType;
@@ -25,54 +27,62 @@ class Stmt;
 
 class Decl : public Node 
 {
-  protected:
-    Identifier *id;
-  
-  public:
+public:
     Decl(Identifier *name);
-    friend std::ostream& operator<<(std::ostream& out, Decl *d) { return out << d->id; }
+ 
+    const Identifier *id;
 };
+
+ostream& operator<<(std::ostream& out, const Decl &d);
 
 class VarDecl : public Decl 
 {
-  protected:
+protected:
     Type *type;
     
-  public:
+public:
     VarDecl(Identifier *name, Type *type);
+
+    bool scope_check(const map<const string, const Decl*> &current_scope);
 };
 
 class ClassDecl : public Decl 
 {
-  protected:
+protected:
     vector<Decl*> *members;
     NamedType *extends;
     vector<NamedType*> *implements;
 
-  public:
+public:
     ClassDecl(Identifier *name, NamedType *extends, 
               vector<NamedType*> *implements, vector<Decl*> *members);
+
+    bool scope_check(const map<const string, const Decl*> &current_scope);
 };
 
 class InterfaceDecl : public Decl 
 {
-  protected:
+protected:
     vector<Decl*> *members;
     
-  public:
+public:
     InterfaceDecl(Identifier *name, vector<Decl*> *members);
+
+    bool scope_check(const map<const string, const Decl*> &current_scope);
 };
 
 class FnDecl : public Decl 
 {
-  protected:
+protected:
     vector<VarDecl*> *formals;
     Type *returnType;
     Stmt *body;
     
-  public:
+public:
     FnDecl(Identifier *name, Type *returnType, vector<VarDecl*> *formals);
     void SetFunctionBody(Stmt *b);
+
+    bool scope_check(const map<const string, const Decl*> &current_scope);
 };
 
 #endif

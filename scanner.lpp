@@ -10,11 +10,13 @@ using std::vector;
 #include <string>
 using std::string;
 
-#include <string.h>
-#include "scanner.h"
-#include "utility.h" // for PrintDebug()
-#include "errors.h"
-#include "parser.h" // for token codes, yylval
+#include <cstring>
+
+
+#include "scanner.hpp"
+#include "utility.hpp"
+#include "errors.hpp"
+#include "parser.hpp"
 
 vector<string> savedLines;
 
@@ -142,19 +144,19 @@ SINGLE_COMMENT    ("//"[^\n]*)
                          return T_DoubleConstant; }
 {STRING}            { yylval.stringConstant = strdup(yytext); 
                          return T_StringConstant; }
-{BEG_STRING}        { ReportError::UntermString(&yylloc, yytext); }
+{BEG_STRING}        { ReportError::UntermString(yylloc, yytext); }
 
 
  /* -------------------- Identifiers --------------------------- */
 {IDENTIFIER}        { if (strlen(yytext) > MaxIdentLen)
-                         ReportError::LongIdentifier(&yylloc, yytext);
+                         ReportError::LongIdentifier(yylloc, yytext);
                        strncpy(yylval.identifier, yytext, MaxIdentLen);
                        yylval.identifier[MaxIdentLen] = '\0';
                        return T_Identifier; }
 
 
  /* -------------------- Default rule (error) -------------------- */
-.                   { ReportError::UnrecogChar(&yylloc, yytext[0]); }
+.                   { ReportError::UnrecogChar(yylloc, yytext[0]); }
 
 %%
 
@@ -206,7 +208,8 @@ static void DoBeforeEachAction()
  */
 const string& GetLineNumbered(int num)
 {
-    return savedLines.at(num);
+    // Offset by one because line #1 = index #0
+    return savedLines.at(num-1);
 }
 
 

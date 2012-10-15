@@ -4,6 +4,9 @@
  * debugging information triggered by keys.
  */
 
+#include <cstdarg>
+#include <cstring>
+
 #include <algorithm>
 using std::find;
 #include <string>
@@ -15,9 +18,7 @@ using std::end;
 #include <utility>
 using std::get;
 
-#include "utility.h"
-#include <stdarg.h>
-#include <string.h>
+#include "utility.hpp"
 
 static map<string, bool> debug_keys;
 static const int BufferSize = 2048;

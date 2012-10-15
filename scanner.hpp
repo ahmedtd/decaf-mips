@@ -11,7 +11,7 @@
 #include <string>
 using std::string;
 
-#include <stdio.h>
+#include <cstdio>
 
 #define MaxIdentLen 31    // Maximum length for identifiers
 

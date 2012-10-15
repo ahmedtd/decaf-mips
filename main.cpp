@@ -3,13 +3,10 @@
  * This file defines the main() routine for the program and not much else.
  * You should not need to modify this file.
  */
- 
-#include <string.h>
-#include <stdio.h>
-#include "utility.h"
-#include "errors.h"
-#include "parser.h"
 
+#include "utility.hpp"
+#include "errors.hpp"
+#include "parser.hpp"
 
 /* Function: main()
  * ----------------
@@ -26,6 +23,7 @@ int main(int argc, char *argv[])
     InitScanner();
     InitParser();
     yyparse();
-    return (ReportError::NumErrors() == 0? 0 : -1);
+
+    return (ReportError::NumErrors() ? -1 : 0);
 }
 

@@ -12,9 +12,26 @@
 #ifndef _H_ast_type
 #define _H_ast_type
 
-#include "ast.h"
 #include <iostream>
+#include <string>
+using std::string;
+#include <memory>
+using std::shared_ptr;
 
+#include "ast.hpp"
+
+// class decaf_type
+//     : public Node
+// {
+// public:
+//     decaf_type(const yyltype &loc, const string &name);
+    
+// protected:
+//     string m_name;
+//     bool m_is_array;
+//     vector<shared_ptr<decaf_type> > m_args;
+//     shared_ptr<decaf_type> m_return;
+// }
 
 class Type : public Node 
 {
@@ -54,6 +71,5 @@ class ArrayType : public Type
     
     void PrintToStream(std::ostream& out) { out << elemType << "[]"; }
 };
-
  
 #endif

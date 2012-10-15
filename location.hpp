@@ -20,6 +20,9 @@ typedef struct yyltype
     int first_line, first_column;
     int last_line, last_column;      
     char *text;                    // you can also ignore this field
+
+    // /// Is this location an actual location, or is it a dummy location?
+    // bool concrete;
 } yyltype;
 
 #define YYLTYPE yyltype

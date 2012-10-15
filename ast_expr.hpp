@@ -13,8 +13,8 @@
 #ifndef _H_ast_expr
 #define _H_ast_expr
 
-#include "ast.h"
-#include "ast_stmt.h"
+#include "ast.hpp"
+#include "ast_stmt.hpp"
 
 class NamedType; // for new
 class Type; // for NewArray
