@@ -28,7 +28,7 @@ Program::Program(vector<Decl*> *d)
     // }
 }
 
-bool Program::scope_check(const scope &exterior_scope)
+bool Program::scope_check(const scope &exterior_scope) const
 {
     scope local_scope(
         begin(*decls),
@@ -62,7 +62,7 @@ StmtBlock::StmtBlock(vector<VarDecl*> *d, vector<Stmt*> *s)
     // }
 }
 
-bool StmtBlock::scope_check(const scope &exterior_scope)
+bool StmtBlock::scope_check(const scope &exterior_scope) const
 {
     // auto wrapper = [](const Decl &newer, const Decl &older) {
     //     cout << newer.id->name << endl;
@@ -75,6 +75,12 @@ bool StmtBlock::scope_check(const scope &exterior_scope)
         end(*decls),
         ReportError::DeclConflict,
         exterior_scope);
+
+    // Each decl needs to check if its type is valid
+    for(auto declp : *decls)
+    {
+        declp->scope_check(block_scope);
+    }
 
     return true;
 }

@@ -35,30 +35,22 @@ using std::shared_ptr;
 
 class Type : public Node 
 {
-  protected:
-    char *typeName;
+public :
+    // static Type *intType, *doubleType, *boolType, *voidType,
+    //     *nullType, *stringType, *errorType;
 
-  public :
-    static Type *intType, *doubleType, *boolType, *voidType,
-                *nullType, *stringType, *errorType;
+    Type(const yyltype loc);
+    Type(Identifier *ident);
+    
+    virtual ostream& stream_print(ostream& out) const;
 
-    Type(yyltype loc) : Node(loc) {}
-    Type(const char *str);
-    
-    virtual void PrintToStream(std::ostream& out) { out << typeName; }
-    friend std::ostream& operator<<(std::ostream& out, Type *t) { t->PrintToStream(out); return out; }
-    virtual bool IsEquivalentTo(Type *other) { return this == other; }
-};
+    const Identifier& ident() const;
 
-class NamedType : public Type 
-{
-  protected:
-    Identifier *id;
-    
-  public:
-    NamedType(Identifier *i);
-    
-    void PrintToStream(std::ostream& out) { out << id; }
+    // Strip any array qualifiers from the type
+    virtual const Type& bare() const;
+
+protected:
+    const Identifier *m_ident;
 };
 
 class ArrayType : public Type 
@@ -69,7 +61,11 @@ class ArrayType : public Type
   public:
     ArrayType(yyltype loc, Type *elemType);
     
-    void PrintToStream(std::ostream& out) { out << elemType << "[]"; }
+    virtual ostream& stream_print(ostream& out) const;
+    
+    virtual const Type& bare() const;
 };
+
+ostream& operator<<(ostream& out, const Type &t);
  
 #endif

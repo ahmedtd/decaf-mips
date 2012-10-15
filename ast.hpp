@@ -27,7 +27,7 @@ public:
     
     virtual bool scope_check(
         const scope &exterior_scope
-    );
+    ) const;
 
 public:
     const yyltype location;
@@ -42,7 +42,7 @@ protected:
 class Identifier : public Node 
 { 
 public:
-    Identifier(yyltype loc, const char *name);
+    Identifier(yyltype loc, const string &name);
 
 public:
     const string name;

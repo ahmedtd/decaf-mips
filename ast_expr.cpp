@@ -34,6 +34,11 @@ Operator::Operator(yyltype loc, const char *tok) : Node(loc) {
     strncpy(tokenString, tok, sizeof(tokenString));
 }
 
+ostream& operator<<(ostream& out, const Operator &o)
+{
+    return out << o.tokenString;
+}
+
 CompoundExpr::CompoundExpr(Expr *l, Operator *o, Expr *r) 
     : Expr(Join(l->location, r->location)),
       op(o),
@@ -98,7 +103,7 @@ Call::Call(yyltype loc, Expr *b, Identifier *f, vector<Expr*> *a)
 }
  
 
-NewExpr::NewExpr(yyltype loc, NamedType *c)
+NewExpr::NewExpr(yyltype loc, Type *c)
     : Expr(loc),
       cType(c)
 { 

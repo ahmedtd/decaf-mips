@@ -31,8 +31,11 @@ class Decl : public Node
 {
 public:
     Decl(Identifier *name);
- 
-    const Identifier *id;
+
+    const Identifier& ident() const;
+    
+protected: 
+    const Identifier *m_ident;
 };
 
 ostream& operator<<(std::ostream& out, const Decl &d);
@@ -40,26 +43,28 @@ ostream& operator<<(std::ostream& out, const Decl &d);
 class VarDecl : public Decl 
 {
 protected:
-    Type *type;
+    Type *m_type;
     
 public:
     VarDecl(Identifier *name, Type *type);
 
-    virtual bool scope_check(const scope &exterior_scope);
+    const Type& type() const;
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class ClassDecl : public Decl 
 {
 protected:
     vector<Decl*> *members;
-    NamedType *extends;
-    vector<NamedType*> *implements;
+    Type *extends;
+    vector<Type*> *implements;
 
 public:
-    ClassDecl(Identifier *name, NamedType *extends, 
-              vector<NamedType*> *implements, vector<Decl*> *members);
+    ClassDecl(Identifier *name, Type *extends, 
+              vector<Type*> *implements, vector<Decl*> *members);
 
-    virtual bool scope_check(const scope &exterior_scope);
+    virtual bool scope_check(const scope  &exterior_scope) const;
 };
 
 class InterfaceDecl : public Decl 
@@ -70,7 +75,7 @@ protected:
 public:
     InterfaceDecl(Identifier *name, vector<Decl*> *members);
 
-    virtual bool scope_check(const scope &exterior_scope);
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class FnDecl : public Decl 
@@ -84,7 +89,7 @@ public:
     FnDecl(Identifier *name, Type *returnType, vector<VarDecl*> *formals);
     void SetFunctionBody(StmtBlock *b);
 
-    virtual bool scope_check(const scope &exterior_scope);
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 #endif

@@ -33,7 +33,7 @@ public:
 
     virtual bool scope_check(
         const scope &exterior_scope = (scope())
-    );
+    ) const;
 };
 
 class Stmt : public Node
@@ -48,7 +48,7 @@ class StmtBlock : public Stmt
 public:
     StmtBlock(vector<VarDecl*> *variableDeclarations, vector<Stmt*> *statements);
 
-    virtual bool scope_check(const scope &exterior_scope);
+    virtual bool scope_check(const scope &exterior_scope) const;
 protected:
     vector<VarDecl*> *decls;
     vector<Stmt*> *stmts;

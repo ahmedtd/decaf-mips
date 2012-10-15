@@ -32,7 +32,8 @@ Node::Node()
 // }
 
 bool Node::scope_check(
-    const scope &exterior_scope)
+    const scope &exterior_scope
+) const
 {
     // Checking the scope doesn't have meaning for all nodes in the AST
     
@@ -42,7 +43,7 @@ bool Node::scope_check(
     return false;
 }
 	 
-Identifier::Identifier(yyltype loc, const char *n)
+Identifier::Identifier(yyltype loc, const string &n)
     : Node(loc),
       name(n)
 {

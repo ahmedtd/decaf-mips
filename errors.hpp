@@ -79,8 +79,8 @@ public:
     static void IdentifierNotDeclared(const Identifier &ident, reasonT whyNeeded);
   
     // Errors used by semantic analyzer for expressions
-    static void IncompatibleOperand(Operator *op, Type *rhs); // unary
-    static void IncompatibleOperands(Operator *op, Type *lhs, Type *rhs); // binary
+    static void IncompatibleOperand(const Operator &op, const Type &rhs); // unary
+    static void IncompatibleOperands(const Operator &op, const Type &lhs, const Type &rhs); // binary
     static void ThisOutsideClassScope(This *th);
 
   

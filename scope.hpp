@@ -4,13 +4,27 @@
 
 #include <map>
 using std::map;
+#include <set>
+using std::set;
 #include <string>
 using std::string;
+#include <iostream>
+using std::cout;
+using std::endl;
 
 class Decl;
+class ClassDecl;
+class InterfaceDecl;
 
 class basic_scope
 {
+public:
+    enum class type_selector
+    {
+        any,
+        class_only,
+        interface_only
+    };
 public:
 
     // Construct an empty scope
@@ -25,12 +39,14 @@ public:
         const basic_scope &exterior_scope
     );
 
+    // ReportingFunc takes a (const Type &) parameter
     template <class TypeIterator, class ReportingFunc>
     bool types_exist(
-        TypeIterator begin_decls,
-        TypeIterator end_decls,
-        ReportingFunc rep_func
-    );
+        TypeIterator begin_types,
+        TypeIterator end_types,
+        ReportingFunc rep_func,
+        type_selector restriction = type_selector::any
+    ) const;
 
 protected:
     map<const string, const Decl*> m_decls_at_scope;
@@ -53,7 +69,7 @@ basic_scope::basic_scope(
         auto declp = *begin_local_scope;
 
         auto insert_info = m_decls_at_scope.insert(
-            make_pair(declp->id->name, declp)
+            make_pair(declp->ident().name, declp)
         );
 
         bool insertion_succeeded = insert_info.second;
@@ -69,6 +85,66 @@ basic_scope::basic_scope(
     // names from the exterior scope
     m_decls_at_scope.insert(begin(exterior_scope.m_decls_at_scope),
                             end(exterior_scope.m_decls_at_scope));
+}
+
+template <class TypeIterator, class ReportingFunc>
+bool basic_scope::types_exist(
+    TypeIterator begin_types,
+    TypeIterator end_types,
+    ReportingFunc rep_func,
+    type_selector restriction
+) const
+{
+    // Build the set of possible types based on the type selector
+    set<string> respondent_types;
+    // Add all the classes at the current scope
+    for(auto declpair : m_decls_at_scope)
+    {
+        auto declp = declpair.second;
+        const string &decl_name = declpair.first;
+
+        const ClassDecl *cdeclp = dynamic_cast<const ClassDecl*>(declp);
+        const InterfaceDecl *ideclp = dynamic_cast<const InterfaceDecl*>(declp);
+
+        if((restriction == type_selector::any
+            || restriction == type_selector::class_only)
+           && cdeclp)
+        {
+            respondent_types.insert(decl_name);
+        }
+        if((restriction == type_selector::any
+            || restriction == type_selector::interface_only)
+           && ideclp)
+        {
+            respondent_types.insert(decl_name);
+        }
+        if(restriction == type_selector::any)
+        {
+            set<string> basic_types = {"int",
+                                   "double",
+                                   "bool",
+                                   "void",
+                                   "null",
+                                   "string",
+                                   "error"};
+            
+            respondent_types.insert(begin(basic_types),
+                                    end(basic_types));
+        }
+    }
+    
+    // Check if each type is in the respondent type vector
+    for(; begin_types != end_types; ++begin_types)
+    {
+        const string &request_name = (*begin_types)->bare().ident().name;
+        
+        if(respondent_types.count(request_name) < 1)
+        {
+            rep_func((*begin_types)->bare());
+        }
+    }
+    
+    return true;
 }
 
 typedef basic_scope scope;

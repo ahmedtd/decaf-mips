@@ -17,35 +17,59 @@ using std::endl;
          
 Decl::Decl(Identifier *n)
     : Node(n->location),
-      id(n)
+      m_ident(n)
 {
     assert(n != NULL);
     //id->parent(this); 
 }
 
+const Identifier& Decl::ident() const
+{
+    return *m_ident;
+}
+
 ostream& operator<<(std::ostream& out, const Decl &d)
 {
-    return out << *(d.id);
+    return out << d.ident();
 }
 
 VarDecl::VarDecl(Identifier *n, Type *t)
     : Decl(n),
-      type(t)
+      m_type(t)
 {
     assert(n != NULL && t != NULL);
     //(type=t)->parent(this);
 }
 
-bool VarDecl::scope_check(const scope &exterior_scope)
+const Type& VarDecl::type() const
 {
-    // Does a vardecl have anything to do in terms of a scope check?
+    return *m_type;
+}
+
+bool VarDecl::scope_check(const scope &exterior_scope) const
+{
+    auto type_reporter = [](const Type &given_type) {
+        ReportError::IdentifierNotDeclared(
+            given_type.ident(),
+            reasonT::LookingForType
+        );
+    };
+
+    // Check if the type of the var is present in the exterior scope
+    vector<Type*> type_vec = {m_type};
+    exterior_scope.types_exist(
+        begin(type_vec),
+        end(type_vec),
+        type_reporter
+    );
+        
     return true;
 }
 
 ClassDecl::ClassDecl(
     Identifier *n,
-    NamedType *ex,
-    vector<NamedType*> *imp,
+    Type *ex,
+    vector<Type*> *imp,
     vector<Decl*> *m
 ) 
     : Decl(n),
@@ -72,8 +96,57 @@ ClassDecl::ClassDecl(
     // }
 }
 
-bool ClassDecl::scope_check(const scope &exterior_scope)
+bool ClassDecl::scope_check(const scope &exterior_scope) const
 {
+    if(extends)
+    {
+        auto extend_reporter = [](const Type &given_type) {
+            ReportError::IdentifierNotDeclared(
+                given_type.ident(),
+                reasonT::LookingForClass
+            );
+        };
+
+        // First check that the type we extend exists
+        vector<Type*> extend_types = {extends};
+        exterior_scope.types_exist(
+            begin(extend_types),
+            end(extend_types),
+            extend_reporter,
+            scope::type_selector::class_only
+        );
+    }
+
+    auto implement_reporter = [](const Type &given_type) {
+        ReportError::IdentifierNotDeclared(
+            given_type.ident(),
+            reasonT::LookingForInterface
+        );
+    };
+
+    // Check that any types we implement exist
+    exterior_scope.types_exist(
+        begin(*implements),
+        end(*implements),
+        implement_reporter,
+        scope::type_selector::interface_only
+    );
+        
+    // Check our inner scope
+    scope bodyscope(begin(*members),
+                    end(*members),
+                    ReportError::DeclConflict,
+                    exterior_scope);
+
+    for(auto declp : *members)
+    {
+        declp->scope_check(bodyscope);
+    }
+
+    // Search for the declaration of the class we're extending
+    
+    // Search for the declaration of all the classes we're implementing
+
     return true;
 }
 
@@ -89,8 +162,20 @@ InterfaceDecl::InterfaceDecl(Identifier *n, vector<Decl*> *m)
     // }
 }
 
-bool InterfaceDecl::scope_check(const scope &exterior_scope)
+bool InterfaceDecl::scope_check(const scope &exterior_scope) const
 {
+    // An interface needs to check its body for consistency
+    scope bodyscope(begin(*members),
+                    end(*members),
+                    ReportError::DeclConflict,
+                    exterior_scope);
+
+    for(auto declp : *members)
+    {
+        // FnDecls stil need to have their formal parameters scope checked.
+        declp->scope_check(bodyscope);
+    }
+    
     return true;
 }
 	
@@ -116,7 +201,7 @@ void FnDecl::SetFunctionBody(StmtBlock *b)
     // body->parent(this);
 }
 
-bool FnDecl::scope_check(const scope &exterior_scope)
+bool FnDecl::scope_check(const scope &exterior_scope) const
 {
     // The FnDecl is responsible for checking its formal parameters
     scope paramscope(begin(*formals),
@@ -125,21 +210,27 @@ bool FnDecl::scope_check(const scope &exterior_scope)
                      exterior_scope);
 
     // Ensure that the types of the formal parameters exist
-    auto identifier_reporter = [](const Identifier &ident) {
+    auto type_reporter = [](const Type &given_type) {
         ReportError::IdentifierNotDeclared(
-            ident,
-            ReportError::reasonT::LookingForType
+            given_type.ident(),
+            reasonT::LookingForType
         );
-    }
+    };
     // Aggregate all of our relevant identifiers
-    vector<Identifier*> needed_types;
+    vector<const Type*> needed_types;
     for(auto vardeclp : *formals)
     {
-        needed_types.push_back(vardeclp->
-    paramscope.types_exist(begin(*formals), end(*formals), identifier_reporter);
+        needed_types.push_back(&(vardeclp->type()));
+    }
+    paramscope.types_exist(
+        begin(needed_types),
+        end(needed_types),
+        type_reporter
+    );
 
     // The StmtBlock it embodies will check the body's scope
-    body->scope_check(paramscope);
+    if(body)
+        body->scope_check(paramscope);
 
     return true;
 }

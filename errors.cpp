@@ -127,16 +127,20 @@ void ReportError::IdentifierNotDeclared(const Identifier &ident, reasonT whyNeed
     OutputError(ident.location, s.str());
 }
 
-void ReportError::IncompatibleOperands(Operator *op, Type *lhs, Type *rhs) {
+void ReportError::IncompatibleOperands(
+    const Operator &op,
+    const Type &lhs,
+    const Type &rhs)
+{
     stringstream s;
     s << "Incompatible operands: " << lhs << " " << op << " " << rhs;
-    OutputError(op->location, s.str());
+    OutputError(op.location, s.str());
 }
      
-void ReportError::IncompatibleOperand(Operator *op, Type *rhs) {
+void ReportError::IncompatibleOperand(const Operator &op, const Type &rhs) {
     stringstream s;
     s << "Incompatible operand: " << op << " " << rhs;
-    OutputError(op->location, s.str());
+    OutputError(op.location, s.str());
 }
 
 void ReportError::ThisOutsideClassScope(This *th) {

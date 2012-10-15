@@ -17,34 +17,56 @@
  * creates lots of copies.
  */
 
-Type *Type::intType    = new Type("int");
-Type *Type::doubleType = new Type("double");
-Type *Type::voidType   = new Type("void");
-Type *Type::boolType   = new Type("bool");
-Type *Type::nullType   = new Type("null");
-Type *Type::stringType = new Type("string");
-Type *Type::errorType  = new Type("error"); 
+// Type *Type::intType    = new Type("int");
+// Type *Type::doubleType = new Type("double");
+// Type *Type::voidType   = new Type("void");
+// Type *Type::boolType   = new Type("bool");
+// Type *Type::nullType   = new Type("null");
+// Type *Type::stringType = new Type("string");
+// Type *Type::errorType  = new Type("error"); 
 
-Type::Type(const char *n) {
-    assert(n);
-    typeName = strdup(n);
-}
-	
-NamedType::NamedType(Identifier *i)
-    : Type(i->location),
-      id(i)
+Type::Type(Identifier *ident)
+    : m_ident(ident)
 {
-    assert(i != NULL);
-    //(id=i)->parent(this);
-} 
+}
 
+ostream& Type::stream_print(ostream &out) const
+{
+    return out << m_ident->name;
+}
+
+const Identifier& Type::ident() const
+{
+    return *m_ident;
+}
+
+const Type& Type::bare() const
+{
+    return *(this);
+}
 
 ArrayType::ArrayType(yyltype loc, Type *et)
-    : Type(loc),
+    : Type(new Identifier(loc, et->ident().name)),
+//    : Type(new Identifier(et->location, et->ident().name)),
       elemType(et)
 {
     assert(et != NULL);
     //(elemType=et)->parent(this);
+}
+
+ostream& ArrayType::stream_print(ostream &out) const
+{
+    return out << m_ident->name << "[]";
+}
+
+const Type& ArrayType::bare() const
+{
+    return *(elemType);
+}
+
+ostream& operator<<(ostream &out, const Type &t)
+{
+    return t.stream_print(out);
 }
 
 

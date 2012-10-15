@@ -13,6 +13,9 @@
 #ifndef _H_ast_expr
 #define _H_ast_expr
 
+#include <ostream>
+using std::ostream;
+
 #include "ast.hpp"
 #include "ast_stmt.hpp"
 
@@ -79,13 +82,14 @@ class NullConstant: public Expr
 
 class Operator : public Node 
 {
-  protected:
+protected:
     char tokenString[4];
     
-  public:
+public:
     Operator(yyltype loc, const char *tok);
-    friend std::ostream& operator<<(std::ostream& out, Operator *o) { return out << o->tokenString; }
- };
+    
+    friend ostream& operator<<(ostream& out, const Operator &o);
+};
  
 class CompoundExpr : public Expr
 {
@@ -187,10 +191,10 @@ class Call : public Expr
 class NewExpr : public Expr
 {
   protected:
-    NamedType *cType;
+    Type *cType;
     
   public:
-    NewExpr(yyltype loc, NamedType *clsType);
+    NewExpr(yyltype loc, Type *clsType);
 };
 
 class NewArrayExpr : public Expr
