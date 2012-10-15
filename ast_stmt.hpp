@@ -32,9 +32,8 @@ public:
     Program(vector<Decl*> *declList);
 
     virtual bool scope_check(
-        const map<const string, const Decl*> &current_scope
-        = (map<const string, const Decl*>())
-        );
+        const scope &exterior_scope = (scope())
+    );
 };
 
 class Stmt : public Node
@@ -46,12 +45,13 @@ public:
 
 class StmtBlock : public Stmt 
 {
+public:
+    StmtBlock(vector<VarDecl*> *variableDeclarations, vector<Stmt*> *statements);
+
+    virtual bool scope_check(const scope &exterior_scope);
 protected:
     vector<VarDecl*> *decls;
     vector<Stmt*> *stmts;
-    
-public:
-    StmtBlock(vector<VarDecl*> *variableDeclarations, vector<Stmt*> *statements);
 };
 
   

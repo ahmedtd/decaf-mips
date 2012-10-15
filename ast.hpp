@@ -11,6 +11,8 @@ using std::string;
 
 #include "location.hpp"
 
+#include "scope.hpp"
+
 class Identifier;
 class Decl;
 
@@ -24,7 +26,7 @@ public:
     // Node* parent() const;
     
     virtual bool scope_check(
-        const map<const string, const Decl*> &current_scope
+        const scope &exterior_scope
     );
 
 public:

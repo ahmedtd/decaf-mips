@@ -119,12 +119,12 @@ void ReportError::InterfaceNotImplemented(const Decl *cd, const Type *interfaceT
     OutputError(interfaceType->location, s.str());
 }
 
-void ReportError::IdentifierNotDeclared(const Identifier *ident, reasonT whyNeeded) {
+void ReportError::IdentifierNotDeclared(const Identifier &ident, reasonT whyNeeded) {
     stringstream s;
     static const char *names[] =  {"type", "class", "interface", "variable", "function"};
     assert(whyNeeded >= 0 && whyNeeded <= sizeof(names)/sizeof(names[0]));
     s << "No declaration found for "<< names[whyNeeded] << " '" << ident << "'";
-    OutputError(ident->location, s.str());
+    OutputError(ident.location, s.str());
 }
 
 void ReportError::IncompatibleOperands(Operator *op, Type *lhs, Type *rhs) {

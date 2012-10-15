@@ -76,8 +76,7 @@ public:
 
 
     // Errors used by semantic analyzer for identifiers
-    static void IdentifierNotDeclared(const Identifier *ident, reasonT whyNeeded);
-
+    static void IdentifierNotDeclared(const Identifier &ident, reasonT whyNeeded);
   
     // Errors used by semantic analyzer for expressions
     static void IncompatibleOperand(Operator *op, Type *rhs); // unary

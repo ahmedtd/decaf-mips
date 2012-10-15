@@ -32,7 +32,7 @@ Node::Node()
 // }
 
 bool Node::scope_check(
-    const map<const string, const Decl*> &current_scope)
+    const scope &exterior_scope)
 {
     // Checking the scope doesn't have meaning for all nodes in the AST
     

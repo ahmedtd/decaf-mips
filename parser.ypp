@@ -40,6 +40,7 @@ void yyerror(const char *msg); // standard error-handling routine
     Stmt *stmt;
     vector<Stmt*> *stmtList;
     LValue *lvalue;
+    StmtBlock *stmt_block;
 }
 
 
@@ -73,7 +74,8 @@ void yyerror(const char *msg); // standard error-handling routine
 %type <var>       Variable VarDecl
 %type <varList>   Formals FormalList VarDecls
 %type <exprList>  Actuals ExprList
-%type <stmt>      Stmt StmtBlock OptElse
+%type <stmt>      Stmt OptElse
+%type <stmt_block> StmtBlock
 %type <stmtList>  StmtList
 
   
@@ -239,7 +241,7 @@ StmtList  :    Stmt StmtList        { $2->insert(begin(*($2)), $1);
           ;
 
 Stmt      :    OptExpr ';'          { $$ = $1; }
-          |    StmtBlock
+          |    StmtBlock            { $$ = $1; }
           |    T_If '(' Expr ')' Stmt OptElse 
                                     { $$ = new IfStmt($3, $5, $6); }
           |    T_While '(' Expr ')' Stmt 

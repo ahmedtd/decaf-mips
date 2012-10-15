@@ -28,39 +28,18 @@ Program::Program(vector<Decl*> *d)
     // }
 }
 
-bool Program::scope_check(const map<const string, const Decl*> &current_scope)
+bool Program::scope_check(const scope &exterior_scope)
 {
-    // Make a copy of the scope
-    map<const string, const Decl*> introduced_scope;
-    
-    // Insert declarations introduced at program scope
+    scope local_scope(
+        begin(*decls),
+        end(*decls),
+        ReportError::DeclConflict,
+        exterior_scope);
+
+    // Check all declarations at local scope
     for(auto declp : *decls)
     {
-        // cout << declp << " " << declp->id << " " << declp->id->name << endl;
-        // cout << declp->location << endl;
-
-        auto insert_info = introduced_scope.insert(
-            make_pair(declp->id->name, declp)
-        );
-        
-        bool insertion_succeeded = insert_info.second;
-        auto insertion_it = insert_info.first;
-
-        // Check if there was already an equivalent identifier at scope
-        if(insertion_succeeded == false)
-        {
-            // Throw an appropriate error
-            ReportError::DeclConflict(*declp, *((*insertion_it).second));
-        }
-    }
-
-    // Shadow exterior scope with introduced scope
-    introduced_scope.insert(begin(current_scope), end(current_scope));
-
-    // Check children
-    for(auto declp : *decls)
-    {
-        declp->scope_check(introduced_scope);
+        declp->scope_check(local_scope);
     }
 
     return true;
@@ -81,6 +60,23 @@ StmtBlock::StmtBlock(vector<VarDecl*> *d, vector<Stmt*> *s)
     // {
     //     stmtp->parent(this);
     // }
+}
+
+bool StmtBlock::scope_check(const scope &exterior_scope)
+{
+    // auto wrapper = [](const Decl &newer, const Decl &older) {
+    //     cout << newer.id->name << endl;
+    //     ReportError::DeclConflict(newer, older);
+    // };
+
+    // Build the local scope
+    scope block_scope(
+        begin(*decls),
+        end(*decls),
+        ReportError::DeclConflict,
+        exterior_scope);
+
+    return true;
 }
 
 ConditionalStmt::ConditionalStmt(Expr *t, Stmt *b)

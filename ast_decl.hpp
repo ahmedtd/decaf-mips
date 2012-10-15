@@ -20,10 +20,12 @@ using std::vector;
 
 #include "ast.hpp"
 
+#include "scope.hpp"
+
 class Type;
 class NamedType;
 class Identifier;
-class Stmt;
+class StmtBlock;
 
 class Decl : public Node 
 {
@@ -43,7 +45,7 @@ protected:
 public:
     VarDecl(Identifier *name, Type *type);
 
-    bool scope_check(const map<const string, const Decl*> &current_scope);
+    virtual bool scope_check(const scope &exterior_scope);
 };
 
 class ClassDecl : public Decl 
@@ -57,7 +59,7 @@ public:
     ClassDecl(Identifier *name, NamedType *extends, 
               vector<NamedType*> *implements, vector<Decl*> *members);
 
-    bool scope_check(const map<const string, const Decl*> &current_scope);
+    virtual bool scope_check(const scope &exterior_scope);
 };
 
 class InterfaceDecl : public Decl 
@@ -68,7 +70,7 @@ protected:
 public:
     InterfaceDecl(Identifier *name, vector<Decl*> *members);
 
-    bool scope_check(const map<const string, const Decl*> &current_scope);
+    virtual bool scope_check(const scope &exterior_scope);
 };
 
 class FnDecl : public Decl 
@@ -76,13 +78,13 @@ class FnDecl : public Decl
 protected:
     vector<VarDecl*> *formals;
     Type *returnType;
-    Stmt *body;
+    StmtBlock *body;
     
 public:
     FnDecl(Identifier *name, Type *returnType, vector<VarDecl*> *formals);
-    void SetFunctionBody(Stmt *b);
+    void SetFunctionBody(StmtBlock *b);
 
-    bool scope_check(const map<const string, const Decl*> &current_scope);
+    virtual bool scope_check(const scope &exterior_scope);
 };
 
 #endif

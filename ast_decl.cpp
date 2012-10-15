@@ -5,10 +5,15 @@
 
 #include <cassert>
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
 #include "ast_decl.hpp"
 #include "ast_type.hpp"
 #include "ast_stmt.hpp"
-        
+
+#include "errors.hpp"
          
 Decl::Decl(Identifier *n)
     : Node(n->location),
@@ -31,9 +36,10 @@ VarDecl::VarDecl(Identifier *n, Type *t)
     //(type=t)->parent(this);
 }
 
-bool VarDecl::scope_check(const map<const string, const Decl*> &current_scope)
+bool VarDecl::scope_check(const scope &exterior_scope)
 {
     // Does a vardecl have anything to do in terms of a scope check?
+    return true;
 }
 
 ClassDecl::ClassDecl(
@@ -66,9 +72,9 @@ ClassDecl::ClassDecl(
     // }
 }
 
-bool ClassDecl::scope_check(const map<const string, const Decl*> &current_scope)
+bool ClassDecl::scope_check(const scope &exterior_scope)
 {
-    
+    return true;
 }
 
 InterfaceDecl::InterfaceDecl(Identifier *n, vector<Decl*> *m)
@@ -83,8 +89,9 @@ InterfaceDecl::InterfaceDecl(Identifier *n, vector<Decl*> *m)
     // }
 }
 
-bool InterfaceDecl::scope_check(const map<const string, const Decl*> &current_scope)
+bool InterfaceDecl::scope_check(const scope &exterior_scope)
 {
+    return true;
 }
 	
 FnDecl::FnDecl(Identifier *n, Type *r, vector<VarDecl*> *d)
@@ -103,30 +110,36 @@ FnDecl::FnDecl(Identifier *n, Type *r, vector<VarDecl*> *d)
     // }
 }
 
-void FnDecl::SetFunctionBody(Stmt *b)
-{ 
+void FnDecl::SetFunctionBody(StmtBlock *b)
+{
+    body = b;
     // body->parent(this);
 }
 
-bool FnDecl::scope_check(const map<const string, const Decl*> &current_scope)
+bool FnDecl::scope_check(const scope &exterior_scope)
 {
     // The FnDecl is responsible for checking its formal parameters
-    map<const string, const Decl*> param_scope;
-    
-    for(auto declp : *decls)
-    {
-        auto insert_info = param_scope.insert(
-            make_pair(declp->id->name, declp)
-        );
-        
-        bool insertion_succeeded = insert_info.second;
-        auto insertion_it = insert_info.first;
+    scope paramscope(begin(*formals),
+                     end(*formals),
+                     ReportError::DeclConflict,
+                     exterior_scope);
 
-        if(insertion_succeeded == false)
-        {
-            
-        }
+    // Ensure that the types of the formal parameters exist
+    auto identifier_reporter = [](const Identifier &ident) {
+        ReportError::IdentifierNotDeclared(
+            ident,
+            ReportError::reasonT::LookingForType
+        );
     }
+    // Aggregate all of our relevant identifiers
+    vector<Identifier*> needed_types;
+    for(auto vardeclp : *formals)
+    {
+        needed_types.push_back(vardeclp->
+    paramscope.types_exist(begin(*formals), end(*formals), identifier_reporter);
 
     // The StmtBlock it embodies will check the body's scope
+    body->scope_check(paramscope);
+
+    return true;
 }

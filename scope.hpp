@@ -2,7 +2,13 @@
 #ifndef DECAF_SCOPE_HPP
 #define DECAF_SCOPE_HPP
 
-template<class Container>
+#include <map>
+using std::map;
+#include <string>
+using std::string;
+
+class Decl;
+
 class basic_scope
 {
 public:
@@ -13,27 +19,30 @@ public:
     // Construct a scope with Decls from the given range
     template<class LocalScopeIterator, class ReportingFunc>
     basic_scope(
-        InputIterator begin_local_scope,
-        InputIterator end_local_scope,
+        LocalScopeIterator begin_local_scope,
+        LocalScopeIterator end_local_scope,
+        ReportingFunc rep_func,
+        const basic_scope &exterior_scope
+    );
+
+    template <class TypeIterator, class ReportingFunc>
+    bool types_exist(
+        TypeIterator begin_decls,
+        TypeIterator end_decls,
         ReportingFunc rep_func
     );
 
 protected:
-    Container<const string, const Decl*> m_decls_at_scope;
+    map<const string, const Decl*> m_decls_at_scope;
 };
 
-template<class Container>
-basic_scope<Container>::basic_scope()
-{
-    
-}
-
-template<class Container,class LocalScopeIterator, class ReportingFunc>
-basic_scope<Container>::basic_scope(
-    InputIterator begin_local_scope,
-    InputIterator end_local_scope,
+template<class LocalScopeIterator,
+         class ReportingFunc>
+basic_scope::basic_scope(
+    LocalScopeIterator begin_local_scope,
+    LocalScopeIterator end_local_scope,
     ReportingFunc rep_func,
-    basic_scope<Container> exterior_scope
+    const basic_scope &exterior_scope
 )
 {
     // Insert declarations from the program scope, calling the reporting
@@ -61,3 +70,7 @@ basic_scope<Container>::basic_scope(
     m_decls_at_scope.insert(begin(exterior_scope.m_decls_at_scope),
                             end(exterior_scope.m_decls_at_scope));
 }
+
+typedef basic_scope scope;
+
+#endif

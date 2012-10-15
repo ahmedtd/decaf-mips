@@ -83,6 +83,9 @@ main.o: main.cpp
 utility.o: utility.cpp
 	$(OBJBUILD)
 
+scope.o: scope.cpp
+	$(OBJBUILD)
+
 # rules to build compiler (dcc)
 
 DCC_OBJS = lex.yy.o   \
@@ -94,7 +97,8 @@ DCC_OBJS = lex.yy.o   \
            ast_type.o \
            errors.o   \
            main.o     \
-           utility.o
+           utility.o  \
+           scope.o
 
 dcc: $(DCC_OBJS)
 	$(LD) -o $@ $(DCC_OBJS) $(LIBS)

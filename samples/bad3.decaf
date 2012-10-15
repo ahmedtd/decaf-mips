@@ -1,4 +1,7 @@
-void Mystery(Unknown a) {}
+void Mystery(Unknown b, Unknown a, Unknown a) {
+     int a;
+     double a;
+}
 
 class Trouble extends Missing implements Gone
 {
