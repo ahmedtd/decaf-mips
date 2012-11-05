@@ -39,7 +39,7 @@ public :
     // static Type *intType, *doubleType, *boolType, *voidType,
     //     *nullType, *stringType, *errorType;
 
-    Type(const yyltype loc);
+//    Type(const yyltype loc);
     Type(Identifier *ident);
     
     virtual ostream& stream_print(ostream& out) const;
@@ -55,7 +55,7 @@ protected:
 
 class ArrayType : public Type 
 {
-  protected:
+  public:
     Type *elemType;
 
   public:
@@ -65,6 +65,8 @@ class ArrayType : public Type
     
     virtual const Type& bare() const;
 };
+
+bool operator==(const Type &rop, const Type &lop);
 
 ostream& operator<<(ostream& out, const Type &t);
  

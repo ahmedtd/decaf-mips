@@ -45,6 +45,20 @@ bool Program::scope_check(const scope &exterior_scope) const
     return true;
 }
 
+Stmt::Stmt()
+{
+}
+
+Stmt::Stmt(const yyltype &loc)
+    : Node(loc)
+{
+}
+
+bool Stmt::scope_check(const scope &exterior_scope) const
+{
+    return true;
+}
+
 StmtBlock::StmtBlock(vector<VarDecl*> *d, vector<Stmt*> *s)
     : decls(d),
       stmts(s)
@@ -82,6 +96,12 @@ bool StmtBlock::scope_check(const scope &exterior_scope) const
         declp->scope_check(block_scope);
     }
 
+    // Each statement also needs to check itself
+    for(const Node *stmtp : *stmts)
+    {
+        stmtp->scope_check(block_scope);
+    }
+
     return true;
 }
 
@@ -94,6 +114,11 @@ ConditionalStmt::ConditionalStmt(Expr *t, Stmt *b)
     // (body=b)->parent(this);
 }
 
+bool ConditionalStmt::scope_check(const scope &exterior_scope) const
+{
+    return body->scope_check(exterior_scope);
+}
+
 ForStmt::ForStmt(Expr *i, Expr *t, Expr *s, Stmt *b)
     : LoopStmt(t, b),
       init(i),
@@ -102,6 +127,24 @@ ForStmt::ForStmt(Expr *i, Expr *t, Expr *s, Stmt *b)
     assert(i != NULL && t != NULL && s != NULL && b != NULL);
     // (init=i)->parent(this);
     // (step=s)->parent(this);
+}
+
+bool ForStmt::scope_check(const scope &exterior_scope) const
+{
+    init->scope_check(exterior_scope);
+    step->scope_check(exterior_scope);
+    test->scope_check(exterior_scope);
+    body->scope_check(exterior_scope);
+
+    return true;
+}
+
+bool WhileStmt::scope_check(const scope &exterior_scope) const
+{
+    test->scope_check(exterior_scope);
+    body->scope_check(exterior_scope);
+
+    return true;
 }
 
 IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb)
@@ -113,6 +156,18 @@ IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb)
     // if (elseBody) elseBody->parent(this);
 }
 
+bool IfStmt::scope_check(const scope &exterior_scope) const
+{
+    body->scope_check(exterior_scope);
+    if(elseBody)
+        elseBody->scope_check(exterior_scope);
+    return true;
+}
+
+bool BreakStmt::scope_check(const scope &exterior_scope) const
+{
+    return true;
+}
 
 ReturnStmt::ReturnStmt(yyltype loc, Expr *e)
     : Stmt(loc),
@@ -120,6 +175,11 @@ ReturnStmt::ReturnStmt(yyltype loc, Expr *e)
 { 
     assert(e != NULL);
     // (expr=e)->parent(this);
+}
+
+bool ReturnStmt::scope_check(const scope &exterior_scope) const
+{
+    return expr->scope_check(exterior_scope);
 }
   
 PrintStmt::PrintStmt(vector<Expr*> *a)
@@ -131,6 +191,16 @@ PrintStmt::PrintStmt(vector<Expr*> *a)
     // {
     //     ap->parent(this);
     // }
+}
+
+bool PrintStmt::scope_check(const scope &exterior_scope) const
+{
+    for(auto pexpr : *args)
+    {
+        pexpr->scope_check(exterior_scope);
+    }
+
+    return true;
 }
 
 

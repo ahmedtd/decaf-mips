@@ -39,8 +39,10 @@ public:
 class Stmt : public Node
 {
 public:
-    Stmt() : Node() {}
-    Stmt(yyltype loc) : Node(loc) {}
+    Stmt();
+    Stmt(const yyltype &loc);
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class StmtBlock : public Stmt 
@@ -63,6 +65,8 @@ protected:
   
 public:
     ConditionalStmt(Expr *testExpr, Stmt *body);
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class LoopStmt : public ConditionalStmt 
@@ -79,18 +83,24 @@ protected:
   
 public:
     ForStmt(Expr *init, Expr *test, Expr *step, Stmt *body);
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class WhileStmt : public LoopStmt 
 {
 public:
     WhileStmt(Expr *test, Stmt *body) : LoopStmt(test, body) {}
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class IfStmt : public ConditionalStmt 
 {
 protected:
     Stmt *elseBody;
+
+    virtual bool scope_check(const scope &exterior_scope) const;
   
 public:
     IfStmt(Expr *test, Stmt *thenBody, Stmt *elseBody);
@@ -100,6 +110,8 @@ class BreakStmt : public Stmt
 {
 public:
     BreakStmt(yyltype loc) : Stmt(loc) {}
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class ReturnStmt : public Stmt  
@@ -109,6 +121,8 @@ protected:
   
 public:
     ReturnStmt(yyltype loc, Expr *expr);
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class PrintStmt : public Stmt
@@ -118,6 +132,8 @@ protected:
     
 public:
     PrintStmt(vector<Expr*> *arguments);
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 

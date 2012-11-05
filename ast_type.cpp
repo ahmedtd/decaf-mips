@@ -26,7 +26,8 @@
 // Type *Type::errorType  = new Type("error"); 
 
 Type::Type(Identifier *ident)
-    : m_ident(ident)
+    : Node(ident->location),
+      m_ident(ident)
 {
 }
 
@@ -62,6 +63,37 @@ ostream& ArrayType::stream_print(ostream &out) const
 const Type& ArrayType::bare() const
 {
     return *(elemType);
+}
+
+bool operator==(const Type &rop, const Type &lop)
+{
+    const ArrayType* rop_arrayp = dynamic_cast<const ArrayType*>(&rop);
+    const ArrayType* lop_arrayp = dynamic_cast<const ArrayType*>(&lop);
+
+    if(rop_arrayp && lop_arrayp)
+    {
+        // If they're both arrays
+
+        if(lop_arrayp->elemType->ident().name == rop_arrayp->elemType->ident().name)
+        {
+            return true;
+        }
+
+        return false;
+    }
+    else if(!rop_arrayp && !lop_arrayp)
+    {
+        // If they're both not arrays
+
+        if(rop.ident().name == lop.ident().name)
+        {
+            return true;
+        }
+        
+        return false;
+    }
+
+    return false;
 }
 
 ostream& operator<<(ostream &out, const Type &t)

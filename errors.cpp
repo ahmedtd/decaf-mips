@@ -107,16 +107,16 @@ void ReportError::DeclConflict(const Decl &decl, const Decl &prevDecl) {
     OutputError(decl.location, s.str());
 }
   
-void ReportError::OverrideMismatch(const Decl *fnDecl) {
+void ReportError::OverrideMismatch(const Decl &fnDecl) {
     stringstream s;
     s << "Method '" << fnDecl << "' must match inherited type signature";
-    OutputError(fnDecl->location, s.str());
+    OutputError(fnDecl.location, s.str());
 }
 
-void ReportError::InterfaceNotImplemented(const Decl *cd, const Type *interfaceType) {
+void ReportError::InterfaceNotImplemented(const Decl &cd, const Type &interfaceType) {
     stringstream s;
     s << "Class '" << cd << "' does not implement entire interface '" << interfaceType << "'";
-    OutputError(interfaceType->location, s.str());
+    OutputError(interfaceType.location, s.str());
 }
 
 void ReportError::IdentifierNotDeclared(const Identifier &ident, reasonT whyNeeded) {

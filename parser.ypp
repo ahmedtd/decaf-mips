@@ -139,7 +139,9 @@ Type      :    T_Int                { $$ = new Type(new Identifier(@1, "int")); 
           ;
 
 IntfDecl  :    T_Interface T_Identifier '{' IntfList '}' 
-                                    { $$ = new InterfaceDecl(new Identifier(@2, $2), $4); }
+                                    { $$ = new InterfaceDecl(new Identifier(@2, $2), $4);
+				      delete $4;
+				    }
           ; 
 
 IntfList  :    IntfList FnHeader ';'
@@ -152,7 +154,9 @@ IntfList  :    IntfList FnHeader ';'
           ;
 
 ClassDecl :    T_Class T_Identifier OptExt OptImpl '{' FieldList '}'
-                                    { $$ = new ClassDecl(new Identifier(@2, $2), $3, $4, $6); }
+                                    { $$ = new ClassDecl(new Identifier(@2, $2), $3, $4, $6);
+				      delete $6; 
+                                    }
           ; 
                 
 OptExt    :    T_Extends T_Identifier    
@@ -227,7 +231,8 @@ FnDecl    :    FnHeader StmtBlock   { ($$=$1)->SetFunctionBody($2); }
           ;
 
 StmtBlock :    '{' VarDecls StmtList '}' 
-                                    { $$ = new StmtBlock($2, $3); }
+                                    { 
+				      $$ = new StmtBlock($2, $3); }
           ;
 
 VarDecls  :    VarDecls VarDecl     { $1->push_back($2);

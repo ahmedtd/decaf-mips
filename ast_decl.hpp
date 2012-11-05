@@ -17,10 +17,51 @@
 using std::ostream;
 #include <vector>
 using std::vector;
+#include <map>
+using std::multimap;
 
 #include "ast.hpp"
 
 #include "scope.hpp"
+
+namespace decaf_compile
+{
+
+
+
+class declaration
+{
+public:
+    virtual const set<basic_scope::scope_key> depends_on() const;
+private:
+};
+
+class variable_declaration : public identifiable
+{
+private:
+    
+};
+
+class interface_declaration
+{
+private:
+};
+
+class class_declaration
+{
+private:
+    
+};
+
+class function_declaration
+{
+
+private:
+    unique_ptr<statement> body;
+    unique_ptr<scope> formal_scope;
+};
+
+}
 
 class Type;
 class NamedType;
@@ -33,6 +74,8 @@ public:
     Decl(Identifier *name);
 
     const Identifier& ident() const;
+
+    virtual set<string> depends_on() const;
     
 protected: 
     const Identifier *m_ident;
@@ -42,7 +85,7 @@ ostream& operator<<(std::ostream& out, const Decl &d);
 
 class VarDecl : public Decl 
 {
-protected:
+public:
     Type *m_type;
     
 public:
@@ -56,7 +99,7 @@ public:
 class ClassDecl : public Decl 
 {
 protected:
-    vector<Decl*> *members;
+    multimap<const string, const Decl*> m_members;
     Type *extends;
     vector<Type*> *implements;
 
@@ -64,13 +107,18 @@ public:
     ClassDecl(Identifier *name, Type *extends, 
               vector<Type*> *implements, vector<Decl*> *members);
 
-    virtual bool scope_check(const scope  &exterior_scope) const;
+    virtual set<string> depends_on() const;
+
+    virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class InterfaceDecl : public Decl 
 {
+public:
+    friend class ClassDecl;
+
 protected:
-    vector<Decl*> *members;
+    multimap<const string, const Decl*> m_members;
     
 public:
     InterfaceDecl(Identifier *name, vector<Decl*> *members);
@@ -90,6 +138,8 @@ public:
     void SetFunctionBody(StmtBlock *b);
 
     virtual bool scope_check(const scope &exterior_scope) const;
+
+    friend bool signatures_equal(const FnDecl &lop, const FnDecl &rop);
 };
 
 #endif

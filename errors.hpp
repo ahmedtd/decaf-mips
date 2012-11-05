@@ -71,9 +71,8 @@ public:
   
     // Errors used by semantic analyzer for declarations
     static void DeclConflict(const Decl &newDecl, const Decl &prevDecl);
-    static void OverrideMismatch(const Decl *fnDecl);
-    static void InterfaceNotImplemented(const Decl *classDecl, const Type *intfType);
-
+    static void OverrideMismatch(const Decl &fnDecl);
+    static void InterfaceNotImplemented(const Decl &classDecl, const Type &intfType);
 
     // Errors used by semantic analyzer for identifiers
     static void IdentifierNotDeclared(const Identifier &ident, reasonT whyNeeded);

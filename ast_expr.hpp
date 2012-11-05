@@ -156,6 +156,8 @@ class ArrayAccess : public LValue
     
   public:
     ArrayAccess(yyltype loc, Expr *base, Expr *subscript);
+
+    //virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 /* Note that field access is used both for qualified names
@@ -171,6 +173,8 @@ class FieldAccess : public LValue
     
   public:
     FieldAccess(Expr *base, Identifier *field); //ok to pass NULL base
+
+    //virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 /* Like field access, call is used both for qualified base.field()
@@ -186,6 +190,8 @@ class Call : public Expr
     
   public:
     Call(yyltype loc, Expr *base, Identifier *field, vector<Expr*> *args);
+
+    //virtual bool scope_check(const scope &exterior_scope) const;
 };
 
 class NewExpr : public Expr
