@@ -1,12 +1,28 @@
-void main()
+bool Wild(string[] names, string answer)
 {
-   Cow betsy;
+   int i;
+   for (i = 0; i < names.length(); i = i + 1) {
+	if (names[i] == answer) 
+	   return true;
+  }
+  return false;
 }
 
-class Cow {
-  int height;
-  int weight;
+void main()
+{
+    string[] names;
+    names = NewArray(4, string);
+    names[0] = "Brian";
+    names[1] = "Cam";
+    names[2] = "Gavan";
+    names[3] = "Julie";
 
-  void Init(int w, int h) {}
-  void Moo() {}
+    while (true) {
+      Print("\nWho is your favorite CS143 staff member? ");
+      if (Wild(names, ReadLine())) {
+	   Print("You just earned 1000 bonus points!\n");
+         break;
+      }
+      Print("That's not a good way to make points. Try again!\n");
+   }
 }
