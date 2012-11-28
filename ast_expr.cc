@@ -189,21 +189,34 @@ Type * AssignExpr::CheckAndComputeResultType() {
     }
     return lhs;
 }
-  void AssignExpr::Emit(CodeGenerator *cg) {
-    dynamic_cast<LValue *>(left)->EmitWithoutDereference(cg); //sad, but if want to be compound....
-    right->Emit(cg);
-    if (left->result->IsReference()) {
-      cg->GenStore(left->result->GetBase(), right->result, left->result->GetRefOffset());
-    } else
-        cg->GenAssign(left->result, right->result);
-    result = left->result;
-  }
-  void LValue::Emit(CodeGenerator *cg)
-  {
+
+void LValue::Emit(CodeGenerator *cg)
+{
+    // Get the result location, assuming its not a reference
     EmitWithoutDereference(cg);
+    
+    // If the resulting location is a reference, load in the true value
     if (result->IsReference()) 
-      result = cg->GenLoad(result->GetBase(), result->GetRefOffset());
-  }
+        result = cg->GenLoad(result->GetBase(), result->GetRefOffset());
+}
+
+void AssignExpr::Emit(CodeGenerator *cg)
+{
+    dynamic_cast<LValue *>(left)->EmitWithoutDereference(cg); //sad, but if want to be compound....
+    
+    right->Emit(cg);
+
+    // Handle referential stuff
+    if (left->result->IsReference())
+    {
+        cg->GenStore(left->result->GetBase(), right->result, left->result->GetRefOffset());
+    }
+    else
+        cg->GenAssign(left->result, right->result);
+    
+    result = left->result;
+}
+
 Type* This::CheckAndComputeResultType() {
     if (!enclosingClass) enclosingClass = FindSpecificParent<ClassDecl>();
    if (!enclosingClass)  
