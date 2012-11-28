@@ -21,10 +21,22 @@
  */
 
 #include "mips.h"
-#include <stdarg.h>
+#include <cstdarg>
 #include <cstring>
 
-
+#include <iostream>
+using std::cout;
+using std::endl;
+#include <stdexcept>
+using std::logic_error;
+#include <algorithm>
+using std::make_heap;
+using std::push_heap;
+using std::pop_heap;
+using std::iter_swap;
+using std::find_if;
+using std::begin;
+using std::end;
 
 // Helper to check if two variable locations are one and the same
 // (same name, segment, and offset)
@@ -37,6 +49,10 @@ static bool LocationsAreSame(Location *var1, Location *var2)
 		&& var1->GetOffset() == var2->GetOffset()));
 }
 
+Mips::~Mips()
+{
+    delete m_reg_alloc;
+}
 
 /* Method: SpillRegister
  * ---------------------
@@ -100,10 +116,18 @@ void Mips::Emit(const char *fmt, ...)
  */
 void Mips::EmitLoadConstant(Location *dst, int val)
 {
-  Register reg = rd;
-  Emit("li %s, %d\t\t# load constant value %d into %s", regs[reg].name,
-	 val, val, regs[reg].name);
-  SpillRegister(dst, rd);
+    // Register reg = rd;
+    
+    // Get a register from the allocator
+    Register dst_reg = m_reg_alloc->alloc_reg(dst, false);
+    
+    Emit("li %s, %d\t\t# load constant value %d into %s", regs[dst_reg].name,
+         val, val, regs[dst_reg].name);
+
+    // Free the dst reg, marking as dirty
+    m_reg_alloc->free_reg(dst_reg, true);
+
+    // SpillRegister(dst, rd);
 }
 
 /* Method: EmitLoadStringConstant
@@ -115,13 +139,13 @@ void Mips::EmitLoadConstant(Location *dst, int val)
  */
 void Mips::EmitLoadStringConstant(Location *dst, const char *str)
 {
-  static int strNum = 1;
-  char label[16];
-  sprintf(label, "_string%d", strNum++);
-  Emit(".data\t\t\t# create string constant marked with label");
-  Emit("%s: .asciiz %s", label, str);
-  Emit(".text");
-  EmitLoadLabel(dst, label);
+    static int strNum = 1;
+    char label[16];
+    sprintf(label, "_string%d", strNum++);
+    Emit(".data\t\t\t# create string constant marked with label");
+    Emit("%s: .asciiz %s", label, str);
+    Emit(".text");
+    EmitLoadLabel(dst, label);
 }
 
 
@@ -132,8 +156,15 @@ void Mips::EmitLoadStringConstant(Location *dst, const char *str)
  */
 void Mips::EmitLoadLabel(Location *dst, const char *label)
 {
-  Emit("la %s, %s\t# load label", regs[rd].name, label);
-  SpillRegister(dst, rd);
+    // Request a destination register
+    Register dst_reg = m_reg_alloc->alloc_reg(dst, false);
+
+    Emit("la %s, %s\t# load label", regs[dst_reg].name, label);
+
+    // Free the reg, noting that it is dirty
+    m_reg_alloc->free_reg(dst_reg, true);
+
+    //SpillRegister(dst, rd);
 }
  
 
@@ -145,8 +176,19 @@ void Mips::EmitLoadLabel(Location *dst, const char *label)
  */
 void Mips::EmitCopy(Location *dst, Location *src)
 {
-  FillRegister(src, rd);
-  SpillRegister(dst, rd);
+    // Register 
+
+    Register src_reg = m_reg_alloc->alloc_reg(src);
+    Register dst_reg = m_reg_alloc->alloc_reg(dst, false);
+    
+    // Mips assembly move
+    Emit("move %s, %s \t# copy", regs[dst_reg].name, regs[src_reg].name);
+
+    m_reg_alloc->free_reg(src_reg, false);
+    m_reg_alloc->free_reg(dst_reg, true);
+
+    // FillRegister(src, rd);
+    // SpillRegister(dst, rd);
 }
 
 
@@ -160,10 +202,20 @@ void Mips::EmitCopy(Location *dst, Location *src)
  */
 void Mips::EmitLoad(Location *dst, Location *reference, int offset)
 {
-  FillRegister(reference, rs);
-  Emit("lw %s, %d(%s) \t# load with offset", regs[rd].name,
-	 offset, regs[rs].name);
-  SpillRegister(dst, rd);
+    // FillRegister(reference, rs);
+
+    Register dst_reg = m_reg_alloc->alloc_reg(dst, false);
+    Register ref_reg = m_reg_alloc->alloc_reg(reference);
+
+    Emit("lw %s, %d(%s) \t# load with offset",
+         regs[dst_reg].name,
+         offset,
+         regs[ref_reg].name);
+    
+    m_reg_alloc->free_reg(dst_reg, true);
+    m_reg_alloc->free_reg(ref_reg, false);
+
+    //SpillRegister(dst, rd);
 }
 
 
@@ -177,10 +229,17 @@ void Mips::EmitLoad(Location *dst, Location *reference, int offset)
  */
 void Mips::EmitStore(Location *reference, Location *value, int offset)
 {
-  FillRegister(value, rs);
-  FillRegister(reference, rd);
-  Emit("sw %s, %d(%s) \t# store with offset",
-	 regs[rs].name, offset, regs[rd].name);
+    Register val_reg = m_reg_alloc->alloc_reg(value);
+    Register ref_reg = m_reg_alloc->alloc_reg(reference);
+
+    // FillRegister(value, rs);
+    // FillRegister(reference, rd);
+    
+    Emit("sw %s, %d(%s) \t# store with offset",
+         regs[val_reg].name, offset, regs[ref_reg].name);
+    
+    m_reg_alloc->free_reg(val_reg, false);
+    m_reg_alloc->free_reg(ref_reg, false);
 }
 
 
@@ -195,11 +254,24 @@ void Mips::EmitStore(Location *reference, Location *value, int offset)
 void Mips::EmitBinaryOp(BinaryOp::OpCode code, Location *dst, 
 				 Location *op1, Location *op2)
 {
-  FillRegister(op1, rs);
-  FillRegister(op2, rt);
-  Emit("%s %s, %s, %s\t", NameForTac(code), regs[rd].name,
-	 regs[rs].name, regs[rt].name);
-  SpillRegister(dst, rd);
+    Register dst_reg = m_reg_alloc->alloc_reg(dst, false);
+    Register op1_reg = m_reg_alloc->alloc_reg(op1);
+    Register op2_reg = m_reg_alloc->alloc_reg(op2);
+
+    // FillRegister(op1, rs);
+    // FillRegister(op2, rt);
+    
+    Emit("%s %s, %s, %s\t",
+         NameForTac(code),
+         regs[dst_reg].name,
+         regs[op1_reg].name,
+         regs[op2_reg].name);
+    
+    // SpillRegister(dst, rd);
+
+    m_reg_alloc->free_reg(dst_reg, true);
+    m_reg_alloc->free_reg(op1_reg, false);
+    m_reg_alloc->free_reg(op2_reg, false);
 }
 
 
@@ -211,8 +283,11 @@ void Mips::EmitBinaryOp(BinaryOp::OpCode code, Location *dst,
  * wipe the slate clean.
  */
 void Mips::EmitLabel(const char *label)
-{ 
-  Emit("%s:", label);
+{
+    m_reg_alloc->spill_dirty();
+    m_reg_alloc->reinit();
+
+    Emit("%s:", label);
 }
 
 
@@ -225,7 +300,12 @@ void Mips::EmitLabel(const char *label)
  */
 void Mips::EmitGoto(const char *label)
 {
-  Emit("b %s\t\t# unconditional branch", label);
+    // A goto ends a basic block, so spill all dirty registers and reinitialize
+    // the allocator
+    m_reg_alloc->spill_dirty();
+    m_reg_alloc->reinit();
+
+    Emit("b %s\t\t# unconditional branch", label);
 }
 
 
@@ -237,10 +317,24 @@ void Mips::EmitGoto(const char *label)
  * all registers here.
  */
 void Mips::EmitIfZ(Location *test, const char *label)
-{ 
-  FillRegister(test, rs);
-  Emit("beqz %s, %s\t# branch if %s is zero ", regs[rs].name, label,
-	 test->GetName());
+{
+    // This instruction ends a basic block
+    m_reg_alloc->spill_dirty();
+
+    Register tst_reg = m_reg_alloc->alloc_reg(test);
+
+    // FillRegister(test, rs);
+    
+    Emit("beqz %s, %s\t# branch if %s is zero ",
+         regs[tst_reg].name,
+         label,
+         test->GetName());
+
+    // The test register is not modified by the branch
+    m_reg_alloc->free_reg(tst_reg, false);
+    
+    // After a branch, we should have the allocator reset its state
+    m_reg_alloc->reinit();
 }
 
 
@@ -253,9 +347,15 @@ void Mips::EmitIfZ(Location *test, const char *label)
  */
 void Mips::EmitParam(Location *arg)
 { 
-  Emit("subu $sp, $sp, 4\t# decrement sp to make space for param");
-  FillRegister(arg, rs);
-  Emit("sw %s, 4($sp)\t# copy param value to stack", regs[rs].name);
+    Emit("subu $sp, $sp, 4\t# decrement sp to make space for param");
+    
+    // FillRegister(arg, rs);
+    
+    Register arg_reg = m_reg_alloc->alloc_reg(arg);
+
+    Emit("sw %s, 4($sp)\t# copy param value to stack", regs[arg_reg].name);
+
+    m_reg_alloc->free_reg(arg_reg, false);
 }
 
 
@@ -272,25 +372,85 @@ void Mips::EmitParam(Location *arg)
  */
 void Mips::EmitCallInstr(Location *result, const char *fn, bool isLabel)
 {
-  Emit("%s %-15s\t# jump to function", isLabel? "jal": "jalr", fn);
-  if (result != NULL) {
-    Emit("move %s, %s\t\t# copy function return value from $v0",
-    regs[rd].name, regs[v0].name);
-    SpillRegister(result, rd);
-  }
+    m_reg_alloc->spill_dirty();
+
+    Emit("%s %-15s\t# jump to function",
+         isLabel? "jal": "jalr",
+         fn);
+
+    m_reg_alloc->reinit();
+    
+    if (result != NULL)
+    {
+        Register result_reg = m_reg_alloc->alloc_reg(result);
+
+        Emit("move %s, %s\t\t# copy function return value from $v0",
+             regs[result_reg].name,
+             regs[v0].name);
+        
+        // SpillRegister(result, rd);
+
+        m_reg_alloc->free_reg(result_reg, true);
+    }
 }
 
 
 // Two covers for the above method for specific LCall/ACall variants
-void Mips::EmitLCall(Location *dst, const char *label)
+void Mips::EmitLCall(Location *result, const char *label)
 { 
-  EmitCallInstr(dst, label, true);
+    // EmitCallInstr(dst, label, true);
+
+    m_reg_alloc->spill_dirty();
+
+    Emit("%s %-15s\t# jump to function",
+         "jal",
+         label);
+    
+    m_reg_alloc->reinit();
+    
+    if (result != NULL)
+    {
+        Register result_reg = m_reg_alloc->alloc_reg(result, false);
+
+        Emit("move %s, %s\t\t# copy function return value from $v0",
+             regs[result_reg].name,
+             regs[v0].name);
+        
+        // SpillRegister(result, rd);
+
+        m_reg_alloc->free_reg(result_reg, true);
+    }
 }
 
-void Mips::EmitACall(Location *dst, Location *fn)
+void Mips::EmitACall(Location *result, Location *fn)
 {
-  FillRegister(fn, rs);
-  EmitCallInstr(dst, regs[rs].name, false);
+    // FillRegister(fn, rs);
+    // EmitCallInstr(dst, regs[rs].name, false);
+
+    m_reg_alloc->spill_dirty();
+
+    Register function_reg = m_reg_alloc->alloc_reg(fn);
+   
+    Emit("%s %-15s\t# jump to function",
+         "jalr",
+         regs[function_reg].name);
+
+    m_reg_alloc->free_reg(function_reg, false);
+    
+    m_reg_alloc->reinit();
+
+    if (result != NULL)
+    {
+        Register result_reg = m_reg_alloc->alloc_reg(result, false);
+
+        Emit("move %s, %s\t\t# copy function return value from $v0",
+             regs[result_reg].name,
+             regs[v0].name);
+        
+        // SpillRegister(result, rd);
+
+        m_reg_alloc->free_reg(result_reg, true);
+    }
 }
 
 /*
@@ -299,8 +459,8 @@ void Mips::EmitACall(Location *dst, Location *fn)
  */
 void Mips::EmitPopParams(int bytes)
 {
-  if (bytes != 0)
-    Emit("add $sp, $sp, %d\t# pop params off stack", bytes);
+    if (bytes != 0)
+        Emit("add $sp, $sp, %d\t# pop params off stack", bytes);
 }
 
 
@@ -319,18 +479,44 @@ void Mips::EmitPopParams(int bytes)
  * $fp and $ra so everything is returned to the state we entered.
  * We then emit jr to jump to the saved $ra.
  */
- void Mips::EmitReturn(Location *returnVal)
+void Mips::EmitReturn(Location *return_loc)
 { 
-  if (returnVal != NULL) 
+    if (return_loc != NULL) 
     {
-      FillRegister(returnVal, rd);
-      Emit("move $v0, %s\t\t# assign return value into $v0",
-	   regs[rd].name);
+        const char *offsetFromWhere = return_loc->GetSegment() == fpRelative
+            ? regs[fp].name
+            : regs[gp].name;
+
+        int offset = return_loc->GetOffset();
+
+        // Check if the return value is in a register
+        if(m_reg_alloc->location_shadowed(return_loc))
+        {
+            // If so, get the register
+            Register retval_loc = m_reg_alloc->alloc_reg(return_loc, false);
+            
+            Emit("move $v0, %s",
+                 regs[retval_loc].name);
+        }
+        else
+        {
+            // For return, load directly to v0
+            Emit("lw $v0, %d(%s)\t# fill $v0 from %d(%s)",
+                 offset,
+                 offsetFromWhere,
+                 offset,
+                 offsetFromWhere);
+        }     
     }
-  Emit("move $sp, $fp\t\t# pop callee frame off stack");
-  Emit("lw $ra, -4($fp)\t# restore saved ra");
-  Emit("lw $fp, 0($fp)\t# restore saved fp");
-  Emit("jr $ra\t\t# return from function");
+    
+    // End the basic block, but don't spill registers, because who cares?
+    // m_reg_alloc->spill_dirty();
+    m_reg_alloc->reinit();
+
+    Emit("move $sp, $fp\t\t# pop callee frame off stack");
+    Emit("lw $ra, -4($fp)\t# restore saved ra");
+    Emit("lw $fp, 0($fp)\t# restore saved fp");
+    Emit("jr $ra\t\t# return from function");
 }
 
 
@@ -421,50 +607,368 @@ const char *Mips::NameForTac(BinaryOp::OpCode code)
  * Constructor sets up the mips names and register descriptors to
  * the initial starting state.
  */
-Mips::Mips() {
-  mipsName[BinaryOp::Add] = "add";
-  mipsName[BinaryOp::Sub] = "sub";
-  mipsName[BinaryOp::Mul] = "mul";
-  mipsName[BinaryOp::Div] = "div";
-  mipsName[BinaryOp::Mod] = "rem";
-  mipsName[BinaryOp::Eq] = "seq";
-  mipsName[BinaryOp::Less] = "slt";
-  mipsName[BinaryOp::And] = "and";
-  mipsName[BinaryOp::Or] = "or";
-  regs[zero] = (RegContents){false, NULL, "$zero", false};
-  regs[at] = (RegContents){false, NULL, "$at", false};
-  regs[v0] = (RegContents){false, NULL, "$v0", false};
-  regs[v1] = (RegContents){false, NULL, "$v1", false};
-  regs[a0] = (RegContents){false, NULL, "$a0", false};
-  regs[a1] = (RegContents){false, NULL, "$a1", false};
-  regs[a2] = (RegContents){false, NULL, "$a2", false};
-  regs[a3] = (RegContents){false, NULL, "$a3", false};
-  regs[k0] = (RegContents){false, NULL, "$k0", false};
-  regs[k1] = (RegContents){false, NULL, "$k1", false};
-  regs[gp] = (RegContents){false, NULL, "$gp", false};
-  regs[sp] = (RegContents){false, NULL, "$sp", false};
-  regs[fp] = (RegContents){false, NULL, "$fp", false};
-  regs[ra] = (RegContents){false, NULL, "$ra", false};
-  regs[t0] = (RegContents){false, NULL, "$t0", true};
-  regs[t1] = (RegContents){false, NULL, "$t1", true};
-  regs[t2] = (RegContents){false, NULL, "$t2", true};
-  regs[t3] = (RegContents){false, NULL, "$t3", true};
-  regs[t4] = (RegContents){false, NULL, "$t4", true};
-  regs[t5] = (RegContents){false, NULL, "$t5", true};
-  regs[t6] = (RegContents){false, NULL, "$t6", true};
-  regs[t7] = (RegContents){false, NULL, "$t7", true};
-  regs[t8] = (RegContents){false, NULL, "$t8", true};
-  regs[t9] = (RegContents){false, NULL, "$t9", true};
-  regs[s0] = (RegContents){false, NULL, "$s0", true};
-  regs[s1] = (RegContents){false, NULL, "$s1", true};
-  regs[s2] = (RegContents){false, NULL, "$s2", true};
-  regs[s3] = (RegContents){false, NULL, "$s3", true};
-  regs[s4] = (RegContents){false, NULL, "$s4", true};
-  regs[s5] = (RegContents){false, NULL, "$s5", true};
-  regs[s6] = (RegContents){false, NULL, "$s6", true};
-  regs[s7] = (RegContents){false, NULL, "$s7", true};
-  rs = t0; rt = t1; rd = t2;
+Mips::Mips()
+{
+    // Fill some mips instruction names
+    mipsName[BinaryOp::Add] = "add";
+    mipsName[BinaryOp::Sub] = "sub";
+    mipsName[BinaryOp::Mul] = "mul";
+    mipsName[BinaryOp::Div] = "div";
+    mipsName[BinaryOp::Mod] = "rem";
+    mipsName[BinaryOp::Eq] = "seq";
+    mipsName[BinaryOp::Less] = "slt";
+    mipsName[BinaryOp::And] = "and";
+    mipsName[BinaryOp::Or] = "or";
+
+    // Fill out some register information
+    regs[zero] = (RegContents){false, NULL, "$zero", false};
+    regs[at] = (RegContents){false, NULL, "$at", false};
+    regs[v0] = (RegContents){false, NULL, "$v0", false};
+    regs[v1] = (RegContents){false, NULL, "$v1", false};
+    regs[a0] = (RegContents){false, NULL, "$a0", false};
+    regs[a1] = (RegContents){false, NULL, "$a1", false};
+    regs[a2] = (RegContents){false, NULL, "$a2", false};
+    regs[a3] = (RegContents){false, NULL, "$a3", false};
+    regs[k0] = (RegContents){false, NULL, "$k0", false};
+    regs[k1] = (RegContents){false, NULL, "$k1", false};
+    regs[gp] = (RegContents){false, NULL, "$gp", false};
+    regs[sp] = (RegContents){false, NULL, "$sp", false};
+    regs[fp] = (RegContents){false, NULL, "$fp", false};
+    regs[ra] = (RegContents){false, NULL, "$ra", false};
+    regs[t0] = (RegContents){false, NULL, "$t0", true};
+    regs[t1] = (RegContents){false, NULL, "$t1", true};
+    regs[t2] = (RegContents){false, NULL, "$t2", true};
+    regs[t3] = (RegContents){false, NULL, "$t3", true};
+    regs[t4] = (RegContents){false, NULL, "$t4", true};
+    regs[t5] = (RegContents){false, NULL, "$t5", true};
+    regs[t6] = (RegContents){false, NULL, "$t6", true};
+    regs[t7] = (RegContents){false, NULL, "$t7", true};
+    regs[t8] = (RegContents){false, NULL, "$t8", true};
+    regs[t9] = (RegContents){false, NULL, "$t9", true};
+    regs[s0] = (RegContents){false, NULL, "$s0", true};
+    regs[s1] = (RegContents){false, NULL, "$s1", true};
+    regs[s2] = (RegContents){false, NULL, "$s2", true};
+    regs[s3] = (RegContents){false, NULL, "$s3", true};
+    regs[s4] = (RegContents){false, NULL, "$s4", true};
+    regs[s5] = (RegContents){false, NULL, "$s5", true};
+    regs[s6] = (RegContents){false, NULL, "$s6", true};
+    regs[s7] = (RegContents){false, NULL, "$s7", true};
+
+    // Assign the fixed operation registers
+    // rs = t0; rt = t1; rd = t2;
+
+    // Get an LRU allocator
+    m_reg_alloc = new LRUAllocator(this);
 }
+
 const char *Mips::mipsName[BinaryOp::NumOps];
+
+Mips::RegisterAllocator::~RegisterAllocator()
+{
+}
+
+Mips::LRUAllocator::LRUAllocator(Mips *mips)
+    : m_time(0),
+      m_mips(mips)
+{
+    // Regs t0 - t9
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t0, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t1, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t2, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t3, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t4, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t5, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t6, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t7, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t8, nullptr, 0);
+    m_reg_heap.emplace_back(reg_record::reg_status::clean, -1, t9, nullptr, 0);
+
+    // Format the register heap
+    make_heap(begin(m_reg_heap), end(m_reg_heap));
+
+    m_reg_heap_end = end(m_reg_heap);
+}
+
+Mips::LRUAllocator::~LRUAllocator()
+{
+}
+
+Mips::Register Mips::LRUAllocator::alloc_reg(Location *shadowed, bool load)
+{
+    cout << "# alloc_reg(); called for " << shadowed->GetName();
+
+    // Is this location already shadowed in a register?
+    auto search_record = find_if(
+        begin(m_reg_heap),
+        end(m_reg_heap),
+        [&](const reg_record &rec) { return (rec.shadowed == shadowed); }
+    );
+
+    // If the location is already shadowed, return the register that shadows it
+    if(search_record != end(m_reg_heap))
+    {
+        // Update the access time of the register
+        (*search_record).time = m_time++;
+        (*search_record).alloc_count++;
+       
+        Register retval = (*search_record).reg;
+
+        // If this is the first time allocating this register for this
+        // instruction, then we need to pop it out of the heap
+        --m_reg_heap_end;
+        iter_swap(search_record, m_reg_heap_end);
+
+        // Restore the heap properties
+        make_heap(begin(m_reg_heap), m_reg_heap_end);
+
+        cout << ", already in register " << m_mips->regs[retval].name << endl;
+
+        return retval;
+    }
+
+    // Otherwise, select the most suitable register candidate
+    // (the one at the top of the heap).
+
+    // Sanity checks
+    if(m_reg_heap_end <= begin(m_reg_heap))
+        throw logic_error(
+            "Mips::LRUAllocator::alloc_reg(): Register allocation limit hit.");
+
+    if(m_reg_heap[0].alloc_count > 0)
+        throw logic_error(
+            "Mips::LRUAllocator::alloc_reg(): Allocation candidate marked as "
+            "already allocated.");
+
+    Register retval = m_reg_heap[0].reg;
+
+    cout << ", assigning reg " << m_mips->regs[retval].name;
+    
+    // Spill the register if necessary
+    if(m_reg_heap[0].status == reg_record::reg_status::dirty)
+    {
+        cout << ", reg is dirty, spilling" << endl;
+        
+        // Check to make sure the register is shadowing a location
+        if(m_reg_heap[0].shadowed == nullptr)
+            throw logic_error(
+                "Mips::LRUAllocator::alloc_reg(): Allocation candidate marked"
+                " as dirty but has no shadowing register.");
+
+        
+        // Emit a spill to the register's shadowed location
+        m_mips->SpillRegister(m_reg_heap[0].shadowed, m_reg_heap[0].reg);
+
+        // Now the register is clean and no longer shadowing a location
+    }
+    else
+    {
+        cout << endl;
+    }
+
+    // Pop the heap
+    m_reg_heap[0].status = reg_record::reg_status::clean;
+    m_reg_heap[0].alloc_count++;
+    m_reg_heap[0].shadowed = shadowed;
+    m_reg_heap[0].time = m_time++;
+    pop_heap(begin(m_reg_heap), m_reg_heap_end);
+    m_reg_heap_end--;
+
+    // Fill the register from the location
+    if(load)
+        m_mips->FillRegister(shadowed, retval);
+
+    
+
+    return retval;
+}
+
+void Mips::LRUAllocator::free_reg(Mips::Register to_free, bool is_dirty)
+{
+    cout << "# Free" << endl;
+
+    // Sanity checks
+    if(m_reg_heap_end >= end(m_reg_heap))
+        throw logic_error(
+            "Mips::LRUAllocator::free_reg(): attempted to free a register when"
+            " there are no registers allocated.");
+
+    // Find the reg_record for to_free
+    auto free_record = find_if(
+        begin(m_reg_heap),
+        end(m_reg_heap),
+        [&](const reg_record &rec) { return rec.reg == to_free; }
+    );
+
+    // Make sure the record exists
+    if(free_record == end(m_reg_heap))
+        throw logic_error(
+            "Mips::LRUAllocator::free_reg(): Attempted to free a reg that is"
+            " not begin trcaked by the allocator.  If this reg was obtained"
+            " from alloc_reg(), this is a serious error.");
+
+    // Make sure that this record is currently allocated
+    if((*free_record).alloc_count == 0)
+        throw logic_error(
+            "Mips::LRUAllocator::free_reg(): attempted to free a reg that is"
+            " not currently allocated.");
+
+    // Update the record for the reg we are about to free
+
+    // Dirty status is sticky.  If the location was dirty before this free (due
+    // to aliasing of registers), then it should remain dirty after this free.
+    (*free_record).status =
+        ((*free_record).status == reg_record::reg_status::dirty)
+        ? reg_record::reg_status::dirty
+        : is_dirty
+        ? reg_record::reg_status::dirty 
+        : reg_record::reg_status::clean;
+
+    // Update the last access time of this register
+    (*free_record).time = m_time++;
+
+    // Update the allocation count of this register
+    (*free_record).alloc_count--;
+
+    // Move the record corresponding to to_free to the end of the heap zone
+    iter_swap(m_reg_heap_end, free_record);
+
+    // Now m_reg_heap_end points to the record in question
+
+    // Make room on the heap for our pending insertion
+    m_reg_heap_end++;
+
+    // Perform the heap insertion
+    push_heap(begin(m_reg_heap), m_reg_heap_end);
+    
+}
+
+bool Mips::LRUAllocator::location_shadowed(Location *loc)
+{
+    // Is this location already shadowed in a register?
+    auto search_record = find_if(
+        begin(m_reg_heap),
+        end(m_reg_heap),
+        [&](const reg_record &rec) { return (rec.shadowed == loc); }
+    );
+
+    // If the location is already shadowed, return the register that shadows it
+    return search_record != end(m_reg_heap);
+}
+
+void Mips::LRUAllocator::reinit()
+{
+    for(reg_record &record : m_reg_heap)
+    {
+        record.status = reg_record::reg_status::clean;
+        record.time = -1;
+        record.shadowed = nullptr;
+        record.alloc_count = 0;
+    }
+
+    m_time = 0;
+    m_reg_heap_end = end(m_reg_heap);
+
+    make_heap(begin(m_reg_heap), end(m_reg_heap));
+
+    m_reg_heap_end = end(m_reg_heap);
+}
+
+void Mips::LRUAllocator::spill_dirty()
+{
+    for(reg_record &record : m_reg_heap)
+    {
+        if(record.alloc_count > 0)
+            throw logic_error(
+                "Mips::LRUAllocator::spill_dirty(): Called while there are"
+                " still extant register allocations.");
+
+        if(record.status == reg_record::reg_status::dirty)
+            if(record.shadowed == nullptr)
+                throw logic_error(
+                    "Mips::LRUAllocator::spill_dirty(): record marked as dirty,"
+                    " but has no shadowed location to spill to.");
+    }
+    for(reg_record &record : m_reg_heap)
+    {
+        if(record.status == reg_record::reg_status::dirty)
+        {
+            // If the reg is dirty, spill it
+
+            m_mips->SpillRegister(record.shadowed, record.reg);
+
+            record.status = reg_record::reg_status::clean;
+            record.time = m_time++;
+
+            // Don't set shadowed to nullptr, as branches and others of their
+            // ilk will still use the fact the a location is shadowed.
+        }
+    }
+
+    // Reform the heap to reflect the changes
+    make_heap(begin(m_reg_heap), end(m_reg_heap));
+}
+
+Mips::LRUAllocator::reg_record::reg_record(
+    reg_status in_status,
+    int in_time,
+    Register in_reg,
+    Location *in_shadowed,
+    size_t in_alloc_count)
+    : status(in_status),
+      time(in_time),
+      reg(in_reg),
+      shadowed(in_shadowed),
+      alloc_count(in_alloc_count)
+{
+}
+
+void Mips::LRUAllocator::reg_record::operator=(const reg_record &right)
+{
+    status = right.status;
+    time = right.time;
+    reg = right.reg;
+    shadowed = right.shadowed;
+    alloc_count = right.alloc_count;
+}
+
+bool Mips::LRUAllocator::reg_record::operator==(const reg_record &right) const
+{
+    return (status == right.status)
+        && (time == right.time)
+        && (reg == right.reg)
+        && (shadowed == right.shadowed)
+        && (alloc_count == right.alloc_count);
+}
+
+bool Mips::LRUAllocator::reg_record::operator<(const reg_record &right) const
+{
+    if(alloc_count > 0)
+    {
+        // An allocated register always comes later than a non-allocated
+        // register.
+        return true;
+    }
+    else if(
+        (status == reg_status::clean && right.status == reg_status::clean)
+        ||(status == reg_status::dirty && right.status == reg_status::dirty)
+    )
+    {
+        return right.time < time;
+    }
+    else if(status == reg_status::clean && right.status == reg_status::dirty)
+    {
+        return false;
+    }
+    else
+    {
+        // If this is dirty and right is clean
+        return true;
+    }
+
+    throw logic_error("Mips::LRUAllocator::reg_record::operator<():"
+                      " unreachable code.");
+    
+    return false;
+}
 
 

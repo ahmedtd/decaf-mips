@@ -34,7 +34,7 @@
 #define _H_hashtable
 
 #include <map>
-#include <string.h>
+#include <cstring>
 
 struct ltstr {
   bool operator()(const char* s1, const char* s2) const

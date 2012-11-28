@@ -1,2 +1,0 @@
-terminate called after throwing an instance of 'std::logic_error'
-  what():  Location::name() called for unbound location

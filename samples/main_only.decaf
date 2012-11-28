@@ -1,5 +1,0 @@
-void main() {
-     int c;
-     
-     c = 0;
-}

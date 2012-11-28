@@ -1,7 +1,22 @@
-PP5
 
-Very sorry it's late.
+Sorry it's late, as usual.  Since it's late, I made it do a little better --
+instead of a linear scan register allocation, it performs an LRU allocation, and
+is a bit smarter than the default about when values need to be loaded.
 
-It's also not too functional.  It should handle all basic expressions of ints, bools, strings, etc, as well as most array computations.  It won't handle classes at all.
+Across all the sample files, my allocator generates exectuables that never
+execute more instructions than the solution dcc-1, and often shows significant
+savings (especially in loads, stores, and adds).
 
-Taahir
+My allocator framework is fairly modular, so it should not be terribly difficult
+to add a more intelligent allocator once I've got liveness analysis working.  In
+addition, I'd like to extend the LRU allocation to use future information -- in
+essence, spilling the value that I won't need for the longest time in the
+future.
+
+In addition, I implemented a few small optimizations: TAC move operations will
+now use the mips pseudo-assembly MOVE instruction (implemented as ADD dst, src,
+$0), and not worry about spilling the moved value if its not necessary.  Return
+statements will move directly from the source register to $v0 if the return
+value is currently cached in a register, or load directly to $v0 if it isn't --
+removing many potential spills.
+

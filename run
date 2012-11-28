@@ -7,38 +7,83 @@
 #
 
 SPIM=./spim.linux
-COMPILER=dcc
+INPUT=$1
+COMPILER1=$2
+COMPILER2=$3
+DIFFCMD=$4
 
 if [ $# -lt 1 ]; then
   echo "Run script error: The run script takes one argument, the path to a Decaf file."
   exit 1;
 fi
-if [ ! -x $COMPILER ]; then
+
+# Check that compiler1 exists
+if [ ! -x $COMPILER1 ]; then
   echo "Run script error: Cannot find $COMPILER executable!"
   echo "(You must run this script from the directory containing your $COMPILER executable.)"
   exit 1;
 fi
-if [ ! -r $1 ]; then
+
+if [ ! -r $INPUT ]; then
   echo "Run script error: Cannot find Decaf input file named '$1'."
   exit 1;
 fi
 
-echo "-- $COMPILER <$1 >tmp.asm"
-./$COMPILER < $1 > tmp.asm 2>tmp.errors
-if [ $? -ne 0 -o -s tmp.errors ]; then
-  echo "Run script error: errors reported from $COMPILER compiling '$1'."
+# Set up tmp files
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT INT TERM HUP
+out1="$tmpdir/out1"
+err1="$tmpdir/err1"
+out2="$tmpdir/out2"
+err2="$tmpdir/err2"
+
+# Run the first compiler
+echo "-- $COMPILER1 <$INPUT >out1 2>err1"
+$COMPILER1 < $INPUT > "$out1" 2> "$err1"
+
+# Check that the first compiler succeeded
+if [ $? -ne 0 -o -s "$err1" ]; then
+  echo "Run script error: errors reported from $COMPILER1 compiling '$1'."
   echo " "
-  cat tmp.errors
+  cat "$err1"
+  exit 1;
+fi
+
+# Run the second compiler
+echo "-- $COMPILER2 <$INPUT >out2 2>err2"
+$COMPILER2 < $INPUT > "$out2" 2> "$err2" 
+
+# Check that the second compiler succeeded
+if [ $? -ne 0 -o -s "$err2" ]; then
+  echo "Run script error: errors reported from $COMPILER2 compiling '$1'."
+  echo " "
+  cat "$err1"
   exit 1;
 fi
 
 #append the defs to the end
-cat defs.asm >> tmp.asm
+cat defs.asm >> "$out1"
+cat defs.asm >> "$out2"
 
-echo "-- spim -count -file tmp.asm"
+spimfile1="$tmpdir/spim1"
+spimfile2="$tmpdir/spim2"
+
+# Execute the first file
+echo "-- spim -count -file out1"
 echo " "
-$SPIM -count -file tmp.asm
+$SPIM -count -file "$out1" | tee "$spimfile1"
+
+echo " "
+echo " "
+
+# Execute the second file
+$SPIM -count -file "$out2" | tee "$spimfile2"
+
+# Launch diffs of output
+"$DIFFCMD" "$out1" "$out2"
+"$DIFFCMD" "$spimfile1" "$spimfile2"
 
 echo " "
 echo " "
 exit 0;
+
