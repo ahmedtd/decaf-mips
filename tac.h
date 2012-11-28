@@ -26,7 +26,6 @@
 #include "list.h" // for VTable
 class Mips;
 
-
     // A Location object is used to identify the operands to the
     // various TAC instructions. A Location is either fp or gp
     // relative (depending on whether in stack or global segemnt)
