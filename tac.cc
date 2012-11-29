@@ -208,19 +208,26 @@ void ACall::EmitSpecific(Mips *mips) {
 } 
 
 
-VTable::VTable(const char *l, List<const char *> *m)
-  : methodLabels(m), label(strdup(l)) {
-  Assert(methodLabels != NULL && label != NULL);
-  sprintf(printed, "VTable for class %s", l);
+VTable::VTable(const string &class_label,
+               const vector<string> &method_labels)
+    : m_method_labels(method_labels),
+      m_class_label(class_label)
+{
+    
+    sprintf(printed, "VTable for class %s", l);
 }
 
-void VTable::Print() {
-  printf("VTable %s =\n", label);
-  for (int i = 0; i < methodLabels->NumElements(); i++) 
-    printf("\t%s,\n", methodLabels->Nth(i));
-  printf("; \n"); 
+void VTable::Print(ostream &out)
+{
+    printf("VTable %s =\n", label);
+    for (int i = 0; i < methodLabels->NumElements(); i++) 
+        printf("\t%s,\n", methodLabels->Nth(i));
+    printf("; \n"); 
 }
-void VTable::EmitSpecific(Mips *mips) {
-  mips->EmitVTable(label, methodLabels);
+
+void VTable::EmitSpecific(Mips *mips)
+{
+    cout << "# (TAC) VTable for class " << m_class_label << endl;
+    mips->EmitVTable(m_class_label, m_method_labels);
 }
 

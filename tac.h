@@ -75,33 +75,6 @@ class Instruction {
 	void Emit(Mips *mips);
 };
 
-  
-  
-  // for convenience, the instruction classes are listed here.
-  // the interfaces for the classes follows below
-  
-  class LoadConstant;
-  class LoadStringConstant;
-  class LoadLabel;
-  class Assign;
-  class Load;
-  class Store;
-  class BinaryOp;
-  class Label;
-  class Goto;
-  class IfZ;
-  class BeginFunc;
-  class EndFunc;
-  class Return;
-  class PushParam;
-  class PopParams;
-  class LCall;
-  class ACall;
-  class VTable;
-
-
-
-
 class LoadConstant: public Instruction {
     Location *dst;
     int val;
@@ -241,13 +214,18 @@ class ACall: public Instruction {
     void EmitSpecific(Mips *mips);
 };
 
-class VTable: public Instruction {
-    List<const char *> *methodLabels;
-    const char *label;
+class VTable
+{
  public:
-    VTable(const char *labelForTable, List<const char *> *methodLabels);
+    VTable(const string &class_label,
+           const vector<string> &method_labels);
+
     void Print();
     void EmitSpecific(Mips *mips);
+    
+private:
+    vector<string> m_method_labels;
+    string m_class_label;
 };
 
 

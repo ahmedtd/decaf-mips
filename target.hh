@@ -6,7 +6,7 @@ class target
 {
 public:
     enum class value_type { lvalue, rvalue };
-    enum class location_type { parameter, local, global };
+    enum class location_type { parameter, local, global, reg_return};
 
 public:
 
@@ -23,6 +23,9 @@ public:
 
     // Possibly some methods to generate loads/stores with transparent
     // indirection
+
+    // Get a new target from this target with incremented subscript
+    target subsequent() const;
 
     // Accessors
     const string& name() const;
@@ -63,6 +66,9 @@ private:
     // layers of indirection are used to access the target, and each element is
     // an offset to apply at the corresponding level.
     vector<unsigned int> m_indirection_offsets;
+
+    // A description of this location
+    string m_descriptor;
 };
 
 bool have_common_base(const target &left, const target &right);

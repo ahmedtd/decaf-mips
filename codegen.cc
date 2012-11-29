@@ -12,215 +12,286 @@
 #include "ast_decl.h"
 #include "errors.h"
 #include "cfg.h"
-
-Location* CodeGenerator::ThisPtr= new Location(fpRelative, 4, "this");
   
 CodeGenerator::CodeGenerator()
 {
-  curGlobalOffset = 0;
+    curGlobalOffset = 0;
 }
 
-char *CodeGenerator::NewLabel()
+string CodeGenerator::NewLabel(const string &descriptor)
 {
-  static int nextLabelNum = 0;
-  char temp[10];
-  sprintf(temp, "_L%d", nextLabelNum++);
-  return strdup(temp);
+    static int nextLabelNum = 0;
+    stringstream labelstream;
+    labelstream << "label_" << descriptor << "_" << nextlabel++;
+    return labelstream.str();
 }
 
-
-Location *CodeGenerator::GenTempVar()
+void CodeGenerator::GenComment(
+    const string &comment,
+    const Comment::style &style = Comment::style::full_line)
 {
-  static int nextTempNum;
-  char temp[10];
-  Location *result = NULL;
-  sprintf(temp, "_tmp%d", nextTempNum++);
-  return GenLocalVariable(temp);
+    code.push_back(new Comment(comment, style));
 }
 
+target CodeGenerator::GenTempVar(const string &descriptor)
+{
+    target return_target = target_tmp;
+    target_tmp = target_tmp.subsequent(descriptor);
+    return return_target;
+}
+
+// Create a new target for a local variable
+//
+// This target will be the root of a possible target chain.  It's important to
+// note that not all targets will end up corresponding to a memory location,
+// especially if they are highlighted by the liveness analysis as dead.
+target CodeGenerator::GenLocalVariable(const string &name)
+{
+    return target(name, target::location_type::local);
+}
+
+target CodeGenerator::GenGlobalVariable(const string &name)
+{
+    return target(name, target::location_type::global);
+}
+
+target CodeGenerator::GenLoadConstant(int value, const string &descriptor)
+{
+    target result_target = GenTempVar(descriptor);
+
+
+    // Output the TAC for the constant load
+    code.push_back(new LoadConstant(result, value, descriptor));
+    
+    return result;
+}
+
+target CodeGenerator::GenLoadConstant(const string &value
+                                      const string &descriptor)
+{
+    target result_target = GenTempVar(descriptor);
+    
+    code.push_back(new LoadStringConstant(result, value, descriptor));
+    
+    return result_target;
+} 
+
+target CodeGenerator::GenLoadLabel(const string &label,
+                                   const string &descriptor)
+{
+    target result_target = GenTempVar(descriptor);
+
+    code.push_back(new LoadLabel(result, label, descriptor));
+
+    return result;
+} 
+
+void CodeGenerator::GenAssign(const target &dst,
+                              const target &src,
+                              const string &descriptor)
+{
+    code.push_back(new Assign(dst, src, descriptor));
+}
+
+void CodeGenerator::GenStore(const target &addr,
+                             const target &value,
+                             const int offset,
+                             const string &descriptor)
+{
+    code.push_back(new Store(addr, value, offset, descriptor));
+}
+
+target CodeGenerator::GenLoad(const target &addr,
+                              const int offset)
+{
+    target result_target = GenTempVar(descriptor);
+    code.push_back(new Load(result_target, addr, offset));
+    return result_target;
+}
+
+target CodeGenerator::GenBinaryOp(
+    const BinaryOp::OpCode &operation,
+    const target &left_operand,
+	const target &right_operand,
+    const string &descriptor)
+{
+    target result_target = GenTempVar(descriptor);
+    
+    code.push_back(
+        new BinaryOp(operation,
+                     result_target,
+                     left_operand,
+                     right_operand));
+    
+    return result_target;
+}
+
+// void CodeGenerator::GenPushParam(const target &param, const string &descriptor)
+// {
+//     code.push_back(new PushParam(param));
+// }
+
+// void CodeGenerator::GenPopParams(int numBytesOfParams)
+// {
+//   Assert(numBytesOfParams >= 0 && numBytesOfParams % VarSize == 0); // sanity check
+//   if (numBytesOfParams > 0)
+//     code.push_back(new PopParams(numBytesOfParams));
+// }
+
+template<class Iterator>
+target CodeGenerator::GenLCall(const string &label,
+                               const Iterator &args_begin,
+                               const Iterator &args_end)
+{
+    // A call will always put its result in the return register
+
+    code.push_back(
+        new LCall(
+            label,
+            reg_return_target,
+            args_begin,
+            args_end
+        )
+    );
+
+    return reg_return_target;
+}
+
+template<class Iterator>
+target CodeGenerator::GenACall(const target &function_address,
+                               const Iterator &args_begin,
+                               const Iterator &args_end)
+{
+    // A call will always put its result in the return register
+    
+    code.push_back(
+        new ACall(
+            fnAddr,
+            reg_return_target));
   
-Location *CodeGenerator::GenLocalVariable(const char *varName)
-{            
-    curStackOffset -= VarSize;
-    return new Location(fpRelative, curStackOffset+4,  varName);
+    return reg_return_target;
 }
 
-Location *CodeGenerator::GenGlobalVariable(const char *varName)
+target CodeGenerator::GenAlloc(
+    const target &size_target)
 {
-    curGlobalOffset += VarSize;
-    return new Location(gpRelative, curGlobalOffset -4, varName);
+    vector<target> argvec = {size_target};
+    return GenLCall("_Alloc", begin(argvec), end(argvec));
 }
 
-
-Location *CodeGenerator::GenLoadConstant(int value)
+target CodeGenerator::GenReadLine()
 {
-  Location *result = GenTempVar();
-  code.push_back(new LoadConstant(result, value));
-  return result;
+    vector<target> argvec;
+    return GenLCall("_ReadLine", begin(argvec), end(argvec));
 }
 
-Location *CodeGenerator::GenLoadConstant(const char *s)
+target CodeGenerator::GenReadInteger()
 {
-  Location *result = GenTempVar();
-  code.push_back(new LoadStringConstant(result, s));
-  return result;
-} 
-
-Location *CodeGenerator::GenLoadLabel(const char *label)
-{
-  Location *result = GenTempVar();
-  code.push_back(new LoadLabel(result, label));
-  return result;
-} 
-
-
-void CodeGenerator::GenAssign(Location *dst, Location *src)
-{
-  code.push_back(new Assign(dst, src));
+    vector<target> argvec;
+    return GenLCall("_ReadInteger", begin(argvec), end(argvec));
 }
 
-
-Location *CodeGenerator::GenLoad(Location *ref, int offset)
+target CodeGenerator::GenStringEqual(const target &left_target,
+                                     const target &right_target)
 {
-  Location *result = GenTempVar();
-  code.push_back(new Load(result, ref, offset));
-  return result;
+    vector<target> argvec = { left_target, right_target };
+    return GenLCall("_StringEqual", begin(argvec), end(argvec));
 }
 
-void CodeGenerator::GenStore(Location *dst,Location *src, int offset)
+target CodeGenerator::GenPrintInt(const target &print_target)
 {
-  code.push_back(new Store(dst, src, offset));
+    vector<target> argvec = { print_target };
+    return GenLCall("_PrintInt", begin(argvec), end(argvec));
 }
 
-
-Location *CodeGenerator::GenBinaryOp(const char *opName, Location *op1,
-						     Location *op2)
+target CodeGenerator::GenPrintString(const target &print_target)
 {
-  Location *result = GenTempVar();
-  code.push_back(new BinaryOp(BinaryOp::OpCodeForName(opName), result, op1, op2));
-  return result;
+    vector<target> argvec = { print_target };
+    return GenLCall("_PrintString", begin(argvec), end(argvec));
 }
 
-
-void CodeGenerator::GenLabel(const char *label)
+target CodeGenerator::GenPrintBool(const target &print_target)
 {
-  code.push_back(new Label(label));
+    vector<target> argvec = { print_target };
+    return GenLCall("_PrintBool", begin(argvec), end(argvec));
 }
 
-void CodeGenerator::GenIfZ(Location *test, const char *label)
+target CodeGenerator::GenHalt()
 {
-  code.push_back(new IfZ(test, label));
+    vector<target> argvec = {};
+    return GenLCall("_Halt", begin(argvec), end(argvec));
 }
 
-void CodeGenerator::GenGoto(const char *label)
+void CodeGenerator::GenIfZ(const target &test,
+                           const string &dst_label,
+                           const string &descriptor)
 {
-  code.push_back(new Goto(label));
+    code.push_back(new IfZ(test, dst_label, descriptor));
 }
 
-void CodeGenerator::GenReturn(Location *val)
+void CodeGenerator::GenGoto(const string &label, const string &descriptor)
 {
-  code.push_back(new Return(val));
+    code.push_back(new Goto(label, descriptor));
 }
 
-
-BeginFunc *CodeGenerator::GenBeginFunc(FnDecl *fn)
+void CodeGenerator::GenReturn(const target &return_target)
 {
-  BeginFunc *result = new BeginFunc;
-  code.push_back(insideFn = result);
-  List<VarDecl*> *formals = fn->GetFormals();
-  int start = OffsetToFirstParam;
-  if (fn->IsMethodDecl()) start += VarSize;
-  for (int i = 0; i < formals->NumElements(); i++)
-    formals->Nth(i)->rtLoc = new Location(fpRelative, i*VarSize + start, formals->Nth(i)->GetName());
-  curStackOffset = OffsetToFirstLocal;
-  return result;
+    code.push_back(new Return(return_target));
+}
+
+void CodeGenerator::GenLabel(const string &label, const string &descriptor)
+{
+    code.push_back(new Label(label, descriptor));
+}
+
+template<class Iterator>
+void CodeGenerator::GenBeginFunc(const Iterator &formals_begin,
+                                 const Iterator &formals_end)
+{
+    // Iterator iterates over VarDecl*
+
+    // Create parameter-class targets for each formal
+    for(auto it = formals_begin; it != formals_end; ++it)
+    {
+        (*it)->target = (target(
+                             (*it)->GetName(),
+                             0,
+                             target::value_type::lvalue,
+                             target::location_type::parameter,
+                             0
+                         ));
+    }
+
+    BeginFunc *tac_instr = new BeginFunc(
+
+    // Set insidefn to the generated BeginFunc instruction
+
+    // BeginFunc *result = new BeginFunc;
+    // code.push_back(insideFn = result);
+    // List<VarDecl*> *formals = fn->GetFormals();
+    // int start = OffsetToFirstParam;
+    // if (fn->IsMethodDecl()) start += VarSize;
+    // for (int i = 0; i < formals->NumElements(); i++)
+    //   formals->Nth(i)->rtLoc = new Location(fpRelative, i*VarSize + start, formals->Nth(i)->GetName());
+    // curStackOffset = OffsetToFirstLocal;
+    // return result;
 }
 
 void CodeGenerator::GenEndFunc()
 {
-  code.push_back(new EndFunc());
-  insideFn->SetFrameSize(OffsetToFirstLocal-curStackOffset);
-  insideFn = NULL;
+    if(insideFn == nullptr)
+        throw logic_error(
+            "CodeGenerator::GenEndFunc(): Called without a matching call to"
+            " GenEndFunc().");
+
+    code.push_back(new EndFunc());
+
+    // Patch the current function
+    insideFn->SetFrameSize(OffsetToFirstLocal-curStackOffset);
+    insideFn = nullptr;
 }
 
-void CodeGenerator::GenPushParam(Location *param)
-{
-  code.push_back(new PushParam(param));
-}
 
-void CodeGenerator::GenPopParams(int numBytesOfParams)
-{
-  Assert(numBytesOfParams >= 0 && numBytesOfParams % VarSize == 0); // sanity check
-  if (numBytesOfParams > 0)
-    code.push_back(new PopParams(numBytesOfParams));
-}
-
-Location *CodeGenerator::GenLCall(const char *label, bool fnHasReturnValue)
-{
-  Location *result = fnHasReturnValue ? GenTempVar() : NULL;
-  code.push_back(new LCall(label, result));
-  return result;
-}
-  
-Location *CodeGenerator::GenFunctionCall(const char *fnLabel, List<Location*> *args, bool hasReturnValue)
-{
-  for (int i = args->NumElements()-1; i >= 0; i--) // push params right to left
-    GenPushParam(args->Nth(i));
-  Location *result = GenLCall(fnLabel, hasReturnValue);
-  GenPopParams(args->NumElements()*VarSize);
-  return result;
-}
-
-Location *CodeGenerator::GenACall(Location *fnAddr, bool fnHasReturnValue)
-{
-  Location *result = fnHasReturnValue ? GenTempVar() : NULL;
-  code.push_back(new ACall(fnAddr, result));
-  return result;
-}
-  
-Location *CodeGenerator::GenMethodCall(Location *rcvr,
-			     Location *meth, List<Location*> *args, bool fnHasReturnValue)
-{
-  for (int i = args->NumElements()-1; i >= 0; i--)
-    GenPushParam(args->Nth(i));
-  GenPushParam(rcvr);	// hidden "this" parameter
-  Location *result= GenACall(meth, fnHasReturnValue);
-  GenPopParams((args->NumElements()+1)*VarSize);
-  return result;
-}
- 
- 
-static struct _builtin {
-  const char *label;
-  int numArgs;
-  bool hasReturn;
-} builtins[] =
- {{"_Alloc", 1, true},
-  {"_ReadLine", 0, true},
-  {"_ReadInteger", 0, true},
-  {"_StringEqual", 2, true},
-  {"_PrintInt", 1, false},
-  {"_PrintString", 1, false},
-  {"_PrintBool", 1, false},
-  {"_Halt", 0, false}};
-
-Location *CodeGenerator::GenBuiltInCall(BuiltIn bn,Location *arg1, Location *arg2)
-{
-  Assert(bn >= 0 && bn < NumBuiltIns);
-  struct _builtin *b = &builtins[bn];
-  Location *result = NULL;
-
-  if (b->hasReturn) result = GenTempVar();
-                // verify appropriate number of non-NULL arguments given
-  Assert((b->numArgs == 0 && !arg1 && !arg2)
-	|| (b->numArgs == 1 && arg1 && !arg2)
-	|| (b->numArgs == 2 && arg1 && arg2));
-  if (arg2) code.push_back(new PushParam(arg2));
-  if (arg1) code.push_back(new PushParam(arg1));
-  code.push_back(new LCall(b->label, result));
-  GenPopParams(VarSize*b->numArgs);
-  return result;
-}
 
 
 void CodeGenerator::GenVTable(const char *className, List<const char *> *methodLabels)
