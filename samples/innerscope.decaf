@@ -1,0 +1,19 @@
+void main()
+{
+	int myint;
+
+	myint=1
+	if(true)
+	{
+		int myint;
+		myint=2;
+		Print(myint);
+	}
+	else
+	{
+		int myint;
+		myint=3;
+		Print(myint);
+	}
+	Print(myint);
+}
