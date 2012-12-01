@@ -22,10 +22,10 @@ OBJS = y.tab.o lex.yy.o $(patsubst %.cc, %.o, $(filter %.cc,$(SRCS))) $(patsubst
 JUNK =  *.o lex.yy.c dpp.yy.c y.tab.c y.tab.h *.core core $(COMPILER).purify purify.log 
 
 # Define the tools we are going to use
-CC= g++-4.6
-LD = g++-4.6
-# CC = g++
-# LD = g++
+# CC= g++-4.6
+# LD = g++-4.6
+CC = g++
+LD = g++
 LEX = flex
 YACC = bison
 
@@ -47,7 +47,7 @@ LEXFLAGS = -d
 YACCFLAGS = -dvty
 
 # Link with standard c library, math library, and lex library
-LIBS = -lc -lm -ll
+LIBS = -lc -lm -lfl
 
 # Rules for various parts of the target
 

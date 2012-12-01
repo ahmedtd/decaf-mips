@@ -2,7 +2,7 @@ void main()
 {
 	int myint;
 
-	myint=1
+	myint=1;
 	if(true)
 	{
 		int myint;

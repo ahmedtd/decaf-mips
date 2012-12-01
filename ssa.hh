@@ -54,7 +54,6 @@ typedef boost::adjacency_list<
 // Define the control flow graph traits type
 typedef boost:graph_traits<control_flow_graph> control_flow_traits;
 
-
 class function
 {
 public:
@@ -74,7 +73,11 @@ public:
 class comp_unit
 {
 public:
+    friend class function;
 
+public:
+    void emit(const Mips &emitter);
+    
 public:
     // The targets for globals in this compilation unit
     vector<target> m_globals;

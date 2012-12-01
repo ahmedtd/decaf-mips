@@ -221,7 +221,8 @@ class VTable
            const vector<string> &method_labels);
 
     void Print();
-    void EmitSpecific(Mips *mips);
+    
+    void emit(Mips &emitter);
     
 private:
     vector<string> m_method_labels;
